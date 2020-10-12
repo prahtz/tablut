@@ -7,7 +7,7 @@ public class MonteCarloTreeSearch<S, A> {
 
     public MonteCarloTreeSearch(MonteCarloGame<S, A> game) {
         this.game = game;
-        this.end = 10000;
+        this.end = 30000;
     }
 
     public A monteCarloTreeSearch(S state) {

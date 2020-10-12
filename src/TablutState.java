@@ -16,17 +16,20 @@ public class TablutState {
 
     private byte[][] pawns;
     private TablutAction previousAction;
+    private byte playerTurn;
 
     private boolean whiteWin = false;
     private boolean blackWin = false;
     private boolean draw = false;
 
     public TablutState() {
+        this.playerTurn = WHITE;
         initBoard();
     }
 
-    public TablutState(byte[][] pawns) {
+    public TablutState(byte[][] pawns, byte playerTurn) {
         this.pawns = pawns;
+        this.playerTurn = playerTurn;
     }
 
     public byte[][] getBoard() {
@@ -99,7 +102,7 @@ public class TablutState {
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++)
                 newPawns[i][j] = pawns[i][j];
-        return new TablutState(newPawns);
+        return new TablutState(newPawns, this.playerTurn);
     }
 
     public TablutAction getPreviousAction() {
@@ -114,7 +117,7 @@ public class TablutState {
         LinkedList<TablutAction> actions = new LinkedList<>();
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++) {
-                if (pawns[i][j] != EMPTY)
+                if (pawns[i][j] == this.playerTurn)
                     actions.addAll(getPawnActions(new Coordinates(i, j), pawns[i][j]));
             }
         return actions;
@@ -155,7 +158,6 @@ public class TablutState {
     }
 
     public void makeAction(TablutAction action) {
-        //TODO - 
         Coordinates pawnPosition = action.getPawn().getPosition();
         Coordinates nextPosition = action.getCoordinates();
         byte pawn = action.getPawn().getPawnType();
@@ -170,6 +172,12 @@ public class TablutState {
         capture(nextPosition, pawn, nextPosition.getRow() + 2, nextPosition.getColumn());
         capture(nextPosition, pawn, nextPosition.getRow(), nextPosition.getColumn() - 2);
         capture(nextPosition, pawn, nextPosition.getRow(), nextPosition.getColumn() + 2);
+
+        this.previousAction = action;
+        if(this.playerTurn == WHITE)
+            this.playerTurn = BLACK;
+        else
+            this.playerTurn = WHITE;
     }
 
     private void capture(Coordinates pawnPosition, byte pawn, int row, int column) {
@@ -200,8 +208,6 @@ public class TablutState {
                 captured = new Coordinates(row + 1, column);
         else
             return null;  
-        
-        System.out.println(captured.getRow() + " " + captured.getColumn());
         if(!isEnemy(pawns[captured.getRow()][captured.getColumn()], pawn)) 
             return null;
         
@@ -270,4 +276,8 @@ public class TablutState {
     public byte[][] getPawns() {
         return pawns;
     }
+
+	public byte getPlayerTurn() {
+		return this.playerTurn;
+	}
 }

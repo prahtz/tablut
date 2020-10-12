@@ -5,9 +5,9 @@ public class MonteCarloTreeSearch<S, A> {
     private long start;
     private long end;
 
-    public MonteCarloTreeSearch(MonteCarloGame<S, A> game) {
+    public MonteCarloTreeSearch(MonteCarloGame<S, A> game, int timeout) {
         this.game = game;
-        this.end = 30000;
+        this.end = timeout * 1000;
     }
 
     public A monteCarloTreeSearch(S state) {

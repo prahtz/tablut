@@ -113,6 +113,18 @@ public class TablutState {
         this.previousAction = previousAction;
     }
 
+    public LinkedList<TablutAction> getUsefulActions() {
+        LinkedList<TablutAction> actions = getLegalActions();
+        LinkedList<TablutAction> result = new LinkedList<>();
+        for(TablutAction action : actions) {
+            if(isWin(action)) {
+                return new LinkedList<TablutAction>(action);
+            else if (isPreventingLoosing(action))
+                result.add(action);
+
+        }   
+    }
+
     public LinkedList<TablutAction> getLegalActions() {
         LinkedList<TablutAction> actions = new LinkedList<>();
         for (int i = 0; i < BOARD_SIZE; i++)
@@ -120,6 +132,12 @@ public class TablutState {
                 if (pawns[i][j] == this.playerTurn)
                     actions.addAll(getPawnActions(new Coordinates(i, j), pawns[i][j]));
             }
+        if(actions.isEmpty()) {
+            if(playerTurn == WHITE)
+                blackWin = true;
+            else
+                whiteWin = true;
+        }
         return actions;
     }
 
@@ -223,10 +241,15 @@ public class TablutState {
         if(pawn == KING)
             pawn = WHITE;
         byte cell = board[row][column];
-        if(pawn == blocker)
+        if(pawn == blocker || cell == CITADEL)
             return true;
-        if(cell == CAMP || cell == CITADEL)
-            return true;
+        if(cell == CAMP) {
+            if((row == 0 && column == 4) || (row == 4 && column == 0) 
+                || (row == BOARD_SIZE - 1 && column == 4) || (row == 4 && column == BOARD_SIZE - 1)) {
+                return false;
+            }
+            return true;   
+        }
         return false;
     }
 

@@ -27,15 +27,11 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
         // TODO Auto-generated method stub
         while(!state.isWhiteWin() && !state.isBlackWin()) {
             LinkedList<TablutAction> actions = state.getLegalActions();
-            if(actions.isEmpty()) {
-                if(state.getPlayerTurn() == TablutState.WHITE)
-                    return BLACK_WIN;
-                else
-                    return WHITE_WIN;
-            }
-            TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
-            state = state.clone();
-            state.makeAction(action);
+            if(!actions.isEmpty()) {
+                TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
+                state = state.clone();
+                state.makeAction(action);
+            } 
         }
         double result = DRAW;
         if(state.isWhiteWin())

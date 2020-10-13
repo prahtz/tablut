@@ -12,7 +12,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     @Override
     public LinkedList<TablutAction> getActions(TablutState state) {
         // TODO Auto-generated method stub
-        return state.getLegalActions();
+        return state.getBestActionFirst();
     }
 
     @Override
@@ -26,7 +26,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     public double getPlayoutResult(TablutState state) {
         // TODO Auto-generated method stub
         while(!state.isWhiteWin() && !state.isBlackWin()) {
-            LinkedList<TablutAction> actions = state.getLegalActions();
+            LinkedList<TablutAction> actions = state.getBestActionFirst();
             if(!actions.isEmpty()) {
                 TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
                 state = state.clone();

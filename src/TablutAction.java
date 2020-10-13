@@ -1,10 +1,18 @@
+import java.util.LinkedList;
+
 public class TablutAction {
     private Coordinates coordinates;
+    private LinkedList<Coordinates> captured;
     private Pawn pawn;
 
     public TablutAction(Coordinates coordinates, Pawn pawn) {
         this.coordinates = coordinates;
+        this.captured = new LinkedList<>();
         this.pawn = pawn;
+    }
+
+    public void addCapture(Coordinates capture) {
+        captured.add(capture);
     }
 
     public Coordinates getCoordinates() {
@@ -29,4 +37,8 @@ public class TablutAction {
         result += "(" + coordinates.getRow() + ", " + coordinates.getColumn() + ")\n";
         return result;
     }
+
+	public LinkedList<Coordinates> getCaptured() {
+		return captured;
+	}
 }

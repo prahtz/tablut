@@ -15,6 +15,10 @@ public class ServerState implements Serializable {
         this.turn = turn;
     }
 
+    public String getTurn() {
+        return this.turn;
+    }
+
     public byte[][] getPawnsBoard() {
         byte[][] pawns = new byte[TablutState.BOARD_SIZE][TablutState.BOARD_SIZE];
         for(int i = 0; i < board.length; i++) 

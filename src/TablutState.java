@@ -12,7 +12,7 @@ public class TablutState {
 
     public static final int BOARD_SIZE = 9;
 
-    private static byte[][] board = new byte[BOARD_SIZE][BOARD_SIZE];
+    private static final byte[][] board = initBoard();
 
     private byte[][] pawns;
     private TablutAction previousAction;
@@ -22,60 +22,101 @@ public class TablutState {
     private boolean whiteWin = false;
     private boolean blackWin = false;
     private boolean draw = false;
-    private int blackPawns = 16;
-    private int whitePawns = 9;
+    private int blackPawns;
+    private int whitePawns;
 
     public TablutState() {
-        this.playerTurn = WHITE;
         this.kingPosition = new Coordinates(4, 4);
-        initBoard();
+        this.whitePawns = 9;
+        this.blackPawns = 16;
+        initPawns();
     }
 
     public TablutState(byte[][] pawns, byte playerTurn) {
         this.pawns = pawns;
         this.playerTurn = playerTurn;
+        this.blackPawns = 0;
+        this.whitePawns = 0;
+        initState();
     }
 
-    public byte[][] getBoard() {
-        return pawns;
+    private TablutState(byte[][] pawns, byte playerTurn, int blackPawns, int whitePawns,
+            Coordinates kingPosition, boolean blackWin, boolean whiteWin) {
+        this.pawns = pawns;
+        this.playerTurn = playerTurn;
+        this.blackPawns = blackPawns;
+        this.whitePawns = whitePawns;
+        this.kingPosition = kingPosition;
+        this.blackWin = blackWin;
+        this.whiteWin = whiteWin;
     }
 
-    public void initBoard() {
-        pawns = new byte[BOARD_SIZE][BOARD_SIZE];
+    public static byte[][] initBoard() {
+        byte[][] board = new byte[BOARD_SIZE][BOARD_SIZE];
         for (int i = 1; i < BOARD_SIZE - 1; i++) {
             if (i < 3 || i > 5) {
-                if (i < 3) {
-                    pawns[4][i + 1] = WHITE;
-                    pawns[i + 1][4] = WHITE;
-                    pawns[4][BOARD_SIZE - i - 2] = WHITE;
-                    pawns[BOARD_SIZE - i - 2][4] = WHITE;
-                }
                 board[0][i] = ESCAPE;
                 board[i][0] = ESCAPE;
                 board[BOARD_SIZE - 1][i] = ESCAPE;
                 board[i][BOARD_SIZE - 1] = ESCAPE;
             } else {
                 board[0][i] = CAMP;
-                pawns[0][i] = BLACK;
                 board[i][0] = CAMP;
-                pawns[i][0] = BLACK;
                 board[BOARD_SIZE - 1][i] = CAMP;
-                pawns[BOARD_SIZE - 1][i] = BLACK;
                 board[i][BOARD_SIZE - 1] = CAMP;
-                pawns[i][BOARD_SIZE - 1] = BLACK;
             }
         }
         board[1][4] = CAMP;
-        pawns[1][4] = BLACK;
         board[4][1] = CAMP;
-        pawns[4][1] = BLACK;
         board[BOARD_SIZE - 2][4] = CAMP;
-        pawns[BOARD_SIZE - 2][4] = BLACK;
         board[4][BOARD_SIZE - 2] = CAMP;
-        pawns[4][BOARD_SIZE - 2] = BLACK;
-
-        pawns[4][4] = KING;
         board[4][4] = CITADEL;
+        return board;
+    }
+    
+    private void initState() {
+        for(int i = 0; i < BOARD_SIZE; i++) {
+            for(int j = 0; j < BOARD_SIZE; j++) {
+                if(pawns[i][j] == BLACK)
+                    blackPawns++;
+                else if(pawns[i][j] == WHITE)
+                    whitePawns++;
+                else if(pawns[i][j] == KING) {
+                    whitePawns++;
+                    kingPosition = new Coordinates(i, j);
+                }
+            }
+        }
+        if(kingPosition == null)
+            blackWin = true;
+        else if(isOnPosition(kingPosition, ESCAPE))
+            whiteWin = true;
+    }
+
+    public byte[][] getBoard() {
+        return pawns;
+    }
+
+    public void initPawns() {
+        pawns = new byte[BOARD_SIZE][BOARD_SIZE];
+        for (int i = 1; i < BOARD_SIZE - 1; i++) {
+            if (i < 3) {
+                pawns[4][i + 1] = WHITE;
+                pawns[i + 1][4] = WHITE;
+                pawns[4][BOARD_SIZE - i - 2] = WHITE;
+                pawns[BOARD_SIZE - i - 2][4] = WHITE;
+            } else if(i <= 5){
+                pawns[0][i] = BLACK;
+                pawns[i][0] = BLACK;
+                pawns[BOARD_SIZE - 1][i] = BLACK;
+                pawns[i][BOARD_SIZE - 1] = BLACK;
+            }
+        }
+        pawns[1][4] = BLACK;
+        pawns[4][1] = BLACK;
+        pawns[BOARD_SIZE - 2][4] = BLACK;
+        pawns[4][BOARD_SIZE - 2] = BLACK;
+        pawns[4][4] = KING;
     }
 
     @Override
@@ -106,23 +147,8 @@ public class TablutState {
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++)
                 newPawns[i][j] = pawns[i][j];
-        TablutState newState = new TablutState(newPawns, this.playerTurn);
-        newState.setBlackPawns(this.blackPawns);
-        newState.setWhitePawns(this.whitePawns);
-        newState.setKingPosition(this.kingPosition);
+        TablutState newState = new TablutState(newPawns, playerTurn, blackPawns, whitePawns, kingPosition, blackWin, whiteWin);
         return newState;
-    }
-
-    private void setKingPosition(Coordinates kingPosition) {
-        this.kingPosition = kingPosition;
-    }
-
-    private void setWhitePawns(int whitePawns) {
-        this.whitePawns = whitePawns;
-    }
-
-    private void setBlackPawns(int blackPawns) {
-        this.blackPawns = blackPawns;
     }
 
     public TablutAction getPreviousAction() {

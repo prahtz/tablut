@@ -11,7 +11,6 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     private final double LOOSE_WEIGHT = 0;
     @Override
     public LinkedList<TablutAction> getActions(TablutState state) {
-        // TODO Auto-generated method stub
         return state.getBestActionFirst();
     }
 
@@ -24,7 +23,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
 
     @Override
     public double getPlayoutResult(TablutState state) {
-        // TODO Auto-generated method stub
+        //DRAW FOR NOT STUCKING IN SIMULATION
         while(!state.isWhiteWin() && !state.isBlackWin()) {
             LinkedList<TablutAction> actions = state.getBestActionFirst();
             if(!actions.isEmpty()) {

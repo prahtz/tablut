@@ -26,10 +26,10 @@ public class MonteCarloTreeSearch<S, A> {
                 backPropagate(result, child);
             }
         }
-        //System.out.println("Root values: " + tree.getUtility() + "/" + tree.getPlayoutsNumber());
-        //for(MonteCarloNode<S, A> node : tree.getChildren())
-            //System.out.println(node.getAction().toString() + " " + node.getUtility() + "/" + node.getPlayoutsNumber() +
-               // " = " + node.getUtility()/node.getPlayoutsNumber());
+        System.out.println("Root values: " + tree.getUtility() + "/" + tree.getPlayoutsNumber());
+        for(MonteCarloNode<S, A> node : tree.getChildren())
+            System.out.println(node.getAction().toString() + " " + node.getUtility() + "/" + node.getPlayoutsNumber() +
+                " = " + node.getUtility()/node.getPlayoutsNumber());
 
         return bestAction(tree);   
     }
@@ -44,7 +44,7 @@ public class MonteCarloTreeSearch<S, A> {
             double bestValue = Double.NEGATIVE_INFINITY;
             MonteCarloNode<S, A> bestChild= null;
             for(MonteCarloNode<S, A> child : tree.getChildren()) {
-                double value = selectionPolicyValue(child);
+                double value = game.selectionPolicyValue(child);
                 if(value > bestValue) {
                     bestValue = value;
                     bestChild = child;

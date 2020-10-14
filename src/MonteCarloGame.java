@@ -5,4 +5,5 @@ public interface MonteCarloGame<S, A> {
 	double getUtility(S state, double result);
 	public LinkedList<A> getActions(S state);
 	public S getNextState(S state, A action);
+	double selectionPolicyValue(MonteCarloNode<S, A> child);
 }

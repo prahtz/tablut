@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
 
 import com.google.gson.Gson;
 
@@ -74,16 +75,19 @@ public class TablutClient {
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, taprut.getTimeout());
         String myTurn = args[0].toUpperCase();
         String turn = myTurn;
+        LinkedList<TablutState> drawConditions = new LinkedList<>();
         while(!turn.equals(TablutClient.BLACKWIN) && !turn.equals(TablutClient.WHITEWIN) 
             && !turn.equals(TablutClient.DRAW)) {
             taprut.read();
             turn = taprut.currentState.getTurn();
             if(taprut.currentState.getTurn().equals(myTurn)) {
-                TablutState s = new TablutState(taprut.currentState.getPawnsBoard(), taprut.getPlayerTurn());
+                TablutState s = new TablutState(taprut.currentState.getPawnsBoard(), taprut.getPlayerTurn(), drawConditions);
                 TablutAction a = mcts.monteCarloTreeSearch(s);
+                System.out.println(s.getDrawConditions().size());
                 taprut.write(taprut.toServerAction(a));
                 s = s.clone();
                 s.makeAction(a);
+                drawConditions = s.getDrawConditions();
                 System.out.println(s.toString());
             }
         }

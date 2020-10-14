@@ -14,7 +14,7 @@ public class TablutClient {
     private static final String BLACK = "BLACK";
     private static final String BLACKWIN = "BLACKWIN";
     private static final String WHITEWIN = "WHITEWIN";
-    private static final String DRAW = "BLACKWIN";
+    private static final String DRAW = "DRAW";
     
     private ServerState currentState;
     private Socket playerSocket;

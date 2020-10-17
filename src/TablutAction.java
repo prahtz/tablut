@@ -2,7 +2,7 @@ import java.util.LinkedList;
 
 public class TablutAction {
     private Coordinates coordinates;
-    private LinkedList<Coordinates> captured;
+    private LinkedList<Capture> captured;
     private Pawn pawn;
 
     public TablutAction(Coordinates coordinates, Pawn pawn) {
@@ -11,7 +11,7 @@ public class TablutAction {
         this.pawn = pawn;
     }
 
-    public void addCapture(Coordinates capture) {
+    public void addCapture(Capture capture) {
         captured.add(capture);
     }
 
@@ -34,11 +34,11 @@ public class TablutAction {
         else
             result = "KING: ";
         result += "(" + pawn.getPosition().getRow() + ", " + pawn.getPosition().getColumn() + ") - > ";
-        result += "(" + coordinates.getRow() + ", " + coordinates.getColumn() + ")\n";
+        result += "(" + coordinates.getRow() + ", " + coordinates.getColumn() + ")";
         return result;
     }
 
-	public LinkedList<Coordinates> getCaptured() {
+	public LinkedList<Capture> getCaptured() {
 		return captured;
 	}
 }

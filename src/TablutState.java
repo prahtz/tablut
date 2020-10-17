@@ -12,6 +12,15 @@ public class TablutState {
 
     public static final int BOARD_SIZE = 9;
 
+    public static final int WHITE_PAWNS = 8;
+    public static final int BLACK_PAWNS = 16;
+
+    public static final int THRESHOLD = 0;
+    public static final int CAPTURED = 1;
+    public static final int KING_WHITE = 2;
+    public static final int KING_BLACK = 3;
+    public static final int KING_EMPTY = 4;
+
     private static final byte[][] board = initBoard();
 
     private byte[][] pawns;
@@ -25,10 +34,11 @@ public class TablutState {
     private int whitePawns;
     private LinkedList<TablutState> drawConditions;
 
-    public TablutState() {
+    public TablutState(byte playerTurn) {
+        this.playerTurn = playerTurn;
         this.kingPosition = new Coordinates(4, 4);
-        this.whitePawns = 9;
-        this.blackPawns = 16;
+        this.whitePawns = WHITE_PAWNS;
+        this.blackPawns = BLACK_PAWNS;
         this.drawConditions = new LinkedList<>();
         this.drawConditions.add(this);
         initPawns();
@@ -154,28 +164,28 @@ public class TablutState {
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++)
                 newPawns[i][j] = pawns[i][j];
-        TablutState newState = new TablutState(newPawns, playerTurn, blackPawns, 
-            whitePawns, kingPosition, blackWin, whiteWin, drawConditions);
+        TablutState newState = new TablutState(newPawns, playerTurn, blackPawns, whitePawns, kingPosition, blackWin,
+                whiteWin, drawConditions);
         return newState;
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (this.getClass() != obj.getClass())
-			return false;
+            return true;
+        if (obj == null)
+            return false;
+        if (this.getClass() != obj.getClass())
+            return false;
         TablutState state = (TablutState) obj;
-        for(int i = 0 ; i < BOARD_SIZE; i++) 
-            for(int j = 0; j < BOARD_SIZE; j++)
-                if(pawns[i][j] != state.getPawns()[i][j])
+        for (int i = 0; i < BOARD_SIZE; i++)
+            for (int j = 0; j < BOARD_SIZE; j++)
+                if (pawns[i][j] != state.getPawns()[i][j])
                     return false;
         return true;
     }
 
-    public LinkedList<TablutAction> getBestActionFirst() {
+    public LinkedList<TablutAction> getBestActionFirst(int[] weights) {
         LinkedList<TablutAction> actions = getLegalActions();
         LinkedList<TablutAction> result = new LinkedList<>();
         boolean loosing = false;
@@ -199,6 +209,56 @@ public class TablutState {
             } else if (!loosing)
                 result.addLast(action);
         }
+        if(!(result.size() == 1 || loosing == true))
+            result = getFinalActions(result, weights);
+        if (result.isEmpty()) {
+            if (playerTurn == WHITE)
+                blackWin = true;
+            else
+                whiteWin = true;
+        }
+        return result;
+    }
+
+    private LinkedList<TablutAction> getFinalActions(LinkedList<TablutAction> actions, int[] weights) {
+        LinkedList<TablutAction> result = new LinkedList<>();
+        for (TablutAction action : actions) {
+            if (evaluateAction(action, weights))
+                result.add(action);
+        }
+        return result;
+    }
+
+    private boolean evaluateAction(TablutAction action, int[] weights) {
+        int sign = 1;
+        if(playerTurn == BLACK)
+            sign = -1;
+
+        double result = weights[CAPTURED] * action.getCaptured().size();
+        result = result + sign * (weights[KING_WHITE] * kingPaths(action, WHITE)  + weights[KING_BLACK] * kingPaths(action, BLACK));
+        result = result + sign * weights[KING_EMPTY] * kingPaths(action, EMPTY);
+        if(result >= weights[THRESHOLD])
+            return true;
+        return false;
+    }
+
+    private int kingPaths(TablutAction action, byte target) {
+        int kingRow = kingPosition.getRow();
+        int kingColumn = kingPosition.getColumn();
+        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = action.getPawn().getPawnType();
+        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = EMPTY;
+        int result = 0;
+        if (kingRow > 0 && pawns[kingRow - 1][kingColumn] == target)
+            result++;
+        else if (kingRow < BOARD_SIZE - 1 && pawns[kingRow + 1][kingColumn] == target)
+            result++;
+        else if (kingColumn >= 1 && pawns[kingRow][kingColumn - 1] == target)
+            result++;
+        else if (kingColumn < BOARD_SIZE - 1 && pawns[kingRow][kingColumn + 1] == target)
+            result++;
+
+        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = EMPTY;
+        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = action.getPawn().getPawnType();
         return result;
     }
 
@@ -238,12 +298,6 @@ public class TablutState {
         if (blackWin || whiteWin)
             return new LinkedList<TablutAction>();
         LinkedList<TablutAction> actions = getLegalActions(this.playerTurn);
-        if (actions.isEmpty()) {
-            if (playerTurn == WHITE)
-                blackWin = true;
-            else
-                whiteWin = true;
-        }
         return actions;
     }
 
@@ -317,7 +371,7 @@ public class TablutState {
             whiteWin = true;
         }
         LinkedList<Coordinates> captures = action.getCaptured();
-        if(!captures.isEmpty()) {
+        if (!captures.isEmpty()) {
             this.drawConditions = new LinkedList<>();
             for (Coordinates capture : captures) {
                 if (pawns[capture.getRow()][capture.getColumn()] == KING)
@@ -328,8 +382,7 @@ public class TablutState {
                 } else
                     whitePawns--;
             }
-        }
-        else {
+        } else {
             checkDraw();
         }
         this.drawConditions.add(this);
@@ -340,8 +393,8 @@ public class TablutState {
     }
 
     private void checkDraw() {
-        for(TablutState state : drawConditions) {
-            if(state.equals(this)) {
+        for (TablutState state : drawConditions) {
+            if (state.equals(this)) {
                 draw = true;
                 break;
             }
@@ -446,11 +499,19 @@ public class TablutState {
         return this.playerTurn;
     }
 
-	public void setDraw(boolean draw) {
+    public void setDraw(boolean draw) {
         this.draw = draw;
-	}
+    }
 
-	public LinkedList<TablutState> getDrawConditions() {
-		return this.drawConditions;
-	}
+    public LinkedList<TablutState> getDrawConditions() {
+        return this.drawConditions;
+    }
+
+    public int getBlackPawns() {
+        return blackPawns;
+    }
+
+    public int getWhitePawns() {
+        return whitePawns;
+    }
 }

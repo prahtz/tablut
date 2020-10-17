@@ -1,8 +1,10 @@
 public class Main {    
     public static void main(String[] args) {
-        TablutState state = new TablutState();
+        
+        TablutState state = new TablutState(TablutState.WHITE);
+        /*
         TablutGame game = new TablutGame();
-        MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
+        MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);*/
         
 
         System.out.println(state.getDrawConditions().size());

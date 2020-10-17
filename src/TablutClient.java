@@ -71,7 +71,9 @@ public class TablutClient {
         TablutClient taprut = new TablutClient(args[0], Integer.parseInt(args[1]), args[2]);
         taprut.declareName();
 
-        TablutGame game = new TablutGame();
+        int[] weights = new int[]{0,0,0,0,0};
+
+        TablutGame game = new TablutGame(weights);
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, taprut.getTimeout());
         String myTurn = args[0].toUpperCase();
         String turn = myTurn;

@@ -1,14 +1,10 @@
 public class Pawn {
-    private Coordinates position;
+    public Coordinates position;
     private byte pawnType;
 
     public Pawn(byte pawnType, Coordinates position) {
         this.pawnType = pawnType;
         this.position = position;
-    }
-
-    public Coordinates getPosition() {
-        return position;
     }
 
     public byte getPawnType() {
@@ -24,7 +20,7 @@ public class Pawn {
         if (this.getClass() != obj.getClass())
             return false;
         Pawn p = (Pawn) obj;
-        if(p.getPawnType() == this.pawnType && p.getPosition().equals(this.position))
+        if(p.getPawnType() == this.pawnType && p.position.equals(this.position))
             return true;
         return false;
     }

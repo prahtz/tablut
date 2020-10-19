@@ -1,18 +1,10 @@
 public class Coordinates {
-    private int row;
-    private int column;
+    public int row;
+    public int column;
 
     public Coordinates(int row, int column) {
         this.row = row;
         this.column = column;
-    }
-
-    public int getRow() {
-        return row;
-    }
-
-    public int getColumn() {
-        return column;
     }
 
     @Override
@@ -24,8 +16,18 @@ public class Coordinates {
         if (this.getClass() != obj.getClass())
             return false;
         Coordinates c = (Coordinates) obj;
-        if(c.getRow() == this.row && c.getColumn() == this.column)
+        if(c.row == this.row && c.column == this.column)
             return true;
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return row*10 + column;
+    }
+
+    @Override
+    public String toString() {
+        return "Row: " + row + " Column: " + column;
     }
 }

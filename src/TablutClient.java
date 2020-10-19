@@ -104,10 +104,10 @@ public class TablutClient {
     }
 
     private ServerAction toServerAction(TablutAction a) {
-        String from = String.valueOf((char)(a.getPawn().getPosition().getColumn() + 65));
-        String to = String.valueOf((char)(a.getCoordinates().getColumn() + 65));
-        from = from + (a.getPawn().getPosition().getRow() + 1);
-        to = to + (a.getCoordinates().getRow() + 1);
+        String from = String.valueOf((char)(a.pawn.position.column + 65));
+        String to = String.valueOf((char)(a.coordinates.column + 65));
+        from = from + (a.pawn.position.row + 1);
+        to = to + (a.coordinates.row + 1);
         System.out.println("FROM " + from + "TO " + to);
         return new ServerAction(from, to);
     }

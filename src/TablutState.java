@@ -1,4 +1,7 @@
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.function.Function;
 
 public class TablutState {
@@ -33,6 +36,24 @@ public class TablutState {
     private int blackPawns;
     private int whitePawns;
     private LinkedList<TablutState> drawConditions;
+    private HashMap<Coordinates, ArrayList<LinkedList<TablutAction>>> actionsMap;
+
+    private enum Directions {
+        UP(0),
+        RIGHT(1),
+        DOWN(2),
+        LEFT(3);
+
+        private int value;
+
+        private Directions(int value) {
+            this.value = value;
+        }
+
+        public int value() {
+            return value;
+        }
+    }
 
     public TablutState(byte playerTurn) {
         this.playerTurn = playerTurn;
@@ -42,6 +63,19 @@ public class TablutState {
         this.drawConditions = new LinkedList<>();
         this.drawConditions.add(this);
         initPawns();
+        initActionMap();
+    }
+
+    public TablutState(byte playerTurn, byte[][] pawns) {
+        this.playerTurn = playerTurn;
+        this.kingPosition = new Coordinates(4, 4);
+        this.whitePawns = WHITE_PAWNS;
+        this.blackPawns = BLACK_PAWNS;
+        this.drawConditions = new LinkedList<>();
+        this.drawConditions.add(this);
+        //initPawns();
+        this.pawns = pawns;
+        initActionMap();
     }
 
     public TablutState(byte[][] pawns, byte playerTurn, LinkedList<TablutState> drawConditions) {
@@ -55,17 +89,18 @@ public class TablutState {
         initState();
     }
 
-    private TablutState(byte[][] pawns, byte playerTurn, int blackPawns, int whitePawns, Coordinates kingPosition,
-            boolean blackWin, boolean whiteWin, LinkedList<TablutState> drawConditions) {
+    private TablutState(TablutState state, byte[][] pawns, Coordinates kingPosition, LinkedList<TablutState> drawConditions, HashMap<Coordinates, ArrayList<LinkedList<TablutAction>>> actionsMap) {
         this.pawns = pawns;
-        this.playerTurn = playerTurn;
-        this.blackPawns = blackPawns;
-        this.whitePawns = whitePawns;
+        this.playerTurn = state.getPlayerTurn();
+        this.blackPawns = state.getBlackPawns();
+        this.whitePawns = state.getWhitePawns();
         this.kingPosition = kingPosition;
-        this.blackWin = blackWin;
-        this.whiteWin = whiteWin;
+        this.blackWin = state.isBlackWin();
+        this.whiteWin = state.isWhiteWin();
+        //this.draw = state.isDraw();
         this.drawConditions = new LinkedList<>();
         this.drawConditions.addAll(drawConditions);
+        this.actionsMap = actionsMap;
     }
 
     public static byte[][] initBoard() {
@@ -112,6 +147,24 @@ public class TablutState {
 
     public byte[][] getBoard() {
         return pawns;
+    }
+
+    private void initActionMap() {
+        this.actionsMap = new HashMap<>();
+        for (int i = 0; i < BOARD_SIZE; i++)
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (pawns[i][j] != EMPTY)
+                    addActions(new Coordinates(i, j), pawns[i][j]);
+            }
+    }
+
+    private void addActions(Coordinates coord, byte pawn) {
+        ArrayList<LinkedList<TablutAction>> actionArray = new ArrayList<>(4);
+        actionArray.add(Directions.UP.value(), searchActions(coord, pawn, -1, true));
+        actionArray.add(Directions.RIGHT.value(), searchActions(coord, pawn, 1, false));
+        actionArray.add(Directions.DOWN.value(), searchActions(coord, pawn, 1, true));
+        actionArray.add(Directions.LEFT.value(), searchActions(coord, pawn, -1, false));     
+        this.actionsMap.put(coord, actionArray);
     }
 
     public void initPawns() {
@@ -164,8 +217,19 @@ public class TablutState {
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++)
                 newPawns[i][j] = pawns[i][j];
-        TablutState newState = new TablutState(newPawns, playerTurn, blackPawns, whitePawns, kingPosition, blackWin,
-                whiteWin, drawConditions);
+        HashMap<Coordinates, ArrayList<LinkedList<TablutAction>>> newActionsMap = new HashMap<>();
+        
+        for (Map.Entry<Coordinates, ArrayList<LinkedList<TablutAction>>> entry : this.actionsMap.entrySet()) {
+            ArrayList<LinkedList<TablutAction>> aList = new ArrayList<>(4);
+            for(int i = 0; i < 4; i++) {
+                LinkedList<TablutAction> list = new LinkedList<>();
+                for(TablutAction a : entry.getValue().get(i)) 
+                    list.add(a.copy());
+                aList.add(i, list);
+            }
+            newActionsMap.put(entry.getKey(), aList);
+        }
+        TablutState newState = new TablutState(this, newPawns, kingPosition, drawConditions, newActionsMap);
         return newState;
     }
 
@@ -185,6 +249,313 @@ public class TablutState {
         return true;
     }
 
+    private void printList(LinkedList<TablutAction> l) {
+        for(TablutAction a : l)
+            System.out.println(a.toString());
+    }
+
+    private void updateActionMap(TablutAction action) {
+        this.actionsMap.remove(action.pawn.position);
+        for(Capture c: action.getCaptured()) {
+            this.actionsMap.remove(c.getCaptured().position);
+            //Directions d = getDirection(action.coordinates, c.getCaptured().position);
+            updatePawnActionsByCoordinates(c.getCaptured().position);
+        }
+
+        ArrayList<LinkedList<TablutAction>> list = new ArrayList<>(4);
+        list.add(Directions.UP.value(), searchActions(action.coordinates, action.pawn.getPawnType(), -1, true));
+        list.add(Directions.RIGHT.value(), searchActions(action.coordinates, action.pawn.getPawnType(), 1, false));
+        list.add(Directions.DOWN.value(), searchActions(action.coordinates, action.pawn.getPawnType(), 1, true));
+        list.add(Directions.LEFT.value(), searchActions(action.coordinates, action.pawn.getPawnType(), -1, false));
+        this.actionsMap.remove(action.coordinates);
+        this.actionsMap.put(action.coordinates, list);
+
+        updatePawnActionsByCoordinates(action.coordinates);
+
+
+        updateOnPawnCapturesByCoordinates(action.coordinates);
+
+        Directions direction = getDirection(action.pawn.position, action.coordinates);
+        updateNewActionsByCoordinates(action.pawn.position, direction);
+
+        updateNewCapturesByCoordinates(action.coordinates);
+        removePlayerCapturesByCoordinates(action.pawn.position);
+    }
+
+    private void updateNewCapturesByCoordinates(Coordinates coordinates) {
+        int row = coordinates.row;
+        int column = coordinates.column;
+        Function<Coordinates, Boolean> condition = (Coordinates c) -> {return isEnemy(getValue(pawns, c), this.playerTurn == WHITE ? BLACK : WHITE);}; //??
+   
+        Coordinates result;
+        if(row + 2 < BOARD_SIZE && isEnemy(pawns[row + 1][column], this.playerTurn) && pawns[row + 2][column] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row + 2, column);
+            Coordinates captured = new Coordinates(row + 1, column);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.RIGHT);
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.DOWN);     
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.LEFT);     
+        }
+        if(row - 2 >= 0 && isEnemy(pawns[row - 1][column], this.playerTurn) && pawns[row - 2][column] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row - 2, column);
+            Coordinates captured = new Coordinates(row - 1, column);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.RIGHT);     
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.LEFT);
+        }
+        if(column + 2 < BOARD_SIZE && isEnemy(pawns[row][column + 1], this.playerTurn) && pawns[row][column + 2] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row, column + 2);
+            Coordinates captured = new Coordinates(row, column + 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.RIGHT);     
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.DOWN);
+        }
+        if(column - 2 >= 0 && isEnemy(pawns[row][column - 1], this.playerTurn) && pawns[row][column - 2] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row, column - 2);
+            Coordinates captured = new Coordinates(row, column - 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.LEFT);     
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) updateCaptures(captured, result, emptyPos, Directions.DOWN);
+        }
+    }
+
+    private void removePlayerCapturesByCoordinates(Coordinates coordinates) {
+        int row = coordinates.row;
+        int column = coordinates.column;
+        Function<Coordinates, Boolean> condition = (Coordinates c) -> {return isEnemy(getValue(pawns, c), this.playerTurn == WHITE ? BLACK : WHITE);}; //??
+
+        Coordinates result;
+        if(row + 2 < BOARD_SIZE && isEnemy(pawns[row + 1][column], this.playerTurn) && pawns[row + 2][column] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row + 2, column);
+            Coordinates captured = new Coordinates(row + 1, column);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.RIGHT);
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.DOWN);     
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.LEFT);     
+        }
+        if(row - 2 >= 0 && isEnemy(pawns[row - 1][column], this.playerTurn) && pawns[row - 2][column] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row - 2, column);
+            Coordinates captured = new Coordinates(row - 1, column);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.RIGHT);     
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.LEFT);
+        }
+        if(column + 2 < BOARD_SIZE && isEnemy(pawns[row][column + 1], this.playerTurn) && pawns[row][column + 2] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row, column + 2);
+            Coordinates captured = new Coordinates(row, column + 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.RIGHT);     
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.DOWN);
+        }
+        if(column - 2 >= 0 && isEnemy(pawns[row][column - 1], this.playerTurn) && pawns[row][column - 2] == EMPTY){
+            Coordinates emptyPos = new Coordinates(row, column - 2);
+            Coordinates captured = new Coordinates(row, column - 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.LEFT);     
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) removeCaptures(captured, result, emptyPos, Directions.DOWN);
+        }
+    }
+
+    private void updateNewActionsByCoordinates(Coordinates position, Directions direction) {
+        Function<Coordinates, Boolean> condition = (Coordinates c) -> {return getValue(pawns, c) != EMPTY;};
+        Coordinates result;
+        if(direction == Directions.UP || direction == Directions.DOWN) {
+            result = searchByDirection(position, Directions.LEFT, condition);
+            if(result != null) updateActionsByCoordinates(result, Directions.LEFT);
+            result = searchByDirection(position, Directions.RIGHT, condition);
+            if(result != null) updateActionsByCoordinates(result, Directions.RIGHT);            
+        }
+        else {
+            result = searchByDirection(position, Directions.UP, condition);
+            if(result != null) updateActionsByCoordinates(result, Directions.UP);
+            result = searchByDirection(position, Directions.DOWN, condition);
+            if(result != null) updateActionsByCoordinates(result, Directions.DOWN);    
+        }
+    }
+
+    private void updatePawnActionsByCoordinates(Coordinates coordinates) {
+        Function<Coordinates, Boolean> condition = (Coordinates c) -> {return getValue(pawns, c) != EMPTY;};
+        Coordinates result;
+        for(Directions dir : Directions.values()) {
+            result = searchByDirection(coordinates, dir, condition);
+            if(result != null) updateActionsByCoordinates(result, dir);
+        }
+    }
+
+    private Directions getDirection(Coordinates prev, Coordinates next) {
+        if(prev.row == next.row) {
+            if(prev.column > next.column)
+                return Directions.LEFT;
+            else
+                return Directions.RIGHT;
+        }
+        else {
+            if(prev.row > next.row)
+                return Directions.UP;
+            else
+                return Directions.DOWN;
+        }
+    }
+
+    private void updateOnPawnCapturesByCoordinates(Coordinates coordinates) {
+        int row = coordinates.row;
+        int column = coordinates.column;
+        byte enemy = this.playerTurn == WHITE ? BLACK : WHITE;
+        Coordinates result;
+        Function<Coordinates, Boolean> condition = (Coordinates c) -> {return isEnemy(getValue(pawns, c), this.playerTurn);}; //??
+        if(column - 1 >= 0 && isBlocker(row, column - 1, enemy) && column + 1 < BOARD_SIZE && pawns[row][column + 1] == EMPTY) {
+            Coordinates emptyPos = new Coordinates(row, column + 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.DOWN);     
+        }
+        if(column + 1 < BOARD_SIZE && isBlocker(row, column + 1, enemy) && column - 1 >= 0 && pawns[row][column - 1] == EMPTY) {
+            Coordinates emptyPos = new Coordinates(row, column - 1);
+            result = searchByDirection(emptyPos, Directions.UP, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.UP);
+            result = searchByDirection(emptyPos, Directions.DOWN, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.DOWN);
+        }
+        if(row - 1 >= 0 && isBlocker(row - 1, column, enemy) && row + 1 < BOARD_SIZE && pawns[row + 1][column] == EMPTY) {
+            Coordinates emptyPos = new Coordinates(row + 1, column);
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.LEFT);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.RIGHT);
+        }
+        if(row + 1 < BOARD_SIZE && isBlocker(row + 1, column, enemy) && row - 1 >= 0 && pawns[row - 1][column] == EMPTY) {
+            Coordinates emptyPos = new Coordinates(row - 1, column);
+            result = searchByDirection(emptyPos, Directions.LEFT, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.LEFT);
+            result = searchByDirection(emptyPos, Directions.RIGHT, condition);
+            if(result != null) updateCaptures(coordinates, result, emptyPos, Directions.RIGHT);
+        }
+    }
+
+    
+
+    private void updateCaptures(Coordinates captured, Coordinates enemyPos, Coordinates emptyPos, Directions direction) {
+        TablutAction tempAction = new TablutAction(new Coordinates(emptyPos.row, emptyPos.column), new Pawn(getValue(pawns, enemyPos), enemyPos));
+        ArrayList<LinkedList<TablutAction>> actionContainer = this.actionsMap.get(enemyPos);
+        if(actionContainer == null) {
+            actionContainer = new ArrayList<>(4);
+            for(int j = 0; j < 4; j++) 
+                actionContainer.add(j, new LinkedList<>());
+        }
+        for(TablutAction a : actionContainer.get(oppositeDirection(direction).value())) {
+            if(a.equals(tempAction)) {
+                Capture c = new Capture(new Pawn(getValue(pawns, captured), captured));
+                if(isCapture(c))
+                    a.addCapture(c);
+                break;
+            }
+        }
+        this.actionsMap.remove(enemyPos);
+        this.actionsMap.put(enemyPos, actionContainer);
+    }
+
+    private void removeCaptures(Coordinates captured, Coordinates enemyPos, Coordinates emptyPos, Directions direction) {
+        TablutAction tempAction = new TablutAction(new Coordinates(emptyPos.row, emptyPos.column), new Pawn(getValue(pawns, enemyPos), enemyPos));
+        ArrayList<LinkedList<TablutAction>> actionContainer = this.actionsMap.get(enemyPos);
+        if(actionContainer == null) {
+            actionContainer = new ArrayList<>(4);
+            for(int j = 0; j < 4; j++) 
+                actionContainer.add(j, new LinkedList<>());
+        }
+        for(TablutAction a : actionContainer.get(oppositeDirection(direction).value())) {
+            if(a.equals(tempAction)) {
+                Capture c = new Capture(new Pawn(getValue(pawns, captured), captured));
+                if(isCapture(c))
+                    a.removeCapture(c);
+                break;
+            }
+        }
+        this.actionsMap.remove(enemyPos);
+        this.actionsMap.put(enemyPos, actionContainer);
+    }
+
+    private Coordinates searchByDirection(Coordinates pos, Directions direction,
+            Function<Coordinates, Boolean> condition) {
+        int row = pos.row;
+        int column = pos.column;
+        Coordinates coord = new Coordinates(row, column);
+        boolean camp = false, citadel = false;
+        int step = direction == Directions.UP || direction == Directions.LEFT ? -1 : 1;
+        for(int i = (direction == Directions.UP || direction == Directions.DOWN ? row + step : column + step); step > 0 ? i < BOARD_SIZE : i >= 0; i += step) {
+            if(direction == Directions.UP || direction == Directions.DOWN)
+                coord.row = i;
+            else 
+                coord.column = i; 
+            if(getValue(board, coord) == CAMP) 
+                camp = true;
+            else if(getValue(board, coord) == CITADEL)
+                citadel = true;
+            else if(getValue(board, coord) == EMPTY && (camp || citadel))
+                break; 
+            if(condition.apply(coord)) {
+                return coord;
+            }
+        }
+        return null;
+    }
+
+    private void updateActionsByCoordinates(Coordinates coord, Directions direction) {
+        int step = direction == Directions.UP || direction == Directions.LEFT ? 1 : -1;
+        ArrayList<LinkedList<TablutAction>> actionContainer = this.actionsMap.get(coord);
+        if(actionContainer == null) {
+            actionContainer = new ArrayList<>(4);
+            for(int j = 0; j < 4; j++) 
+                actionContainer.add(j, new LinkedList<>());
+        }
+        actionContainer.set(oppositeDirection(direction).value(), searchActions(coord, getValue(pawns, coord), step, direction == Directions.UP || direction == Directions.DOWN ? true : false));
+        this.actionsMap.remove(coord);
+        this.actionsMap.put(coord, actionContainer);
+    }
+
+    private Directions oppositeDirection(Directions direction) {
+        if(direction == Directions.UP)
+            return Directions.DOWN;
+        if(direction == Directions.DOWN)
+            return Directions.UP;
+        if(direction == Directions.LEFT)
+            return Directions.RIGHT;
+        return Directions.LEFT;
+    }
+
+    private byte getValue(byte[][] b, Coordinates c) {
+        return b[c.row][c.column];
+    }
+
+    private boolean isCapture(Capture captured) {
+        if (pawns[captured.getCaptured().position.row][captured.getCaptured().position.column] == KING 
+            && !kingCaptured(captured.getCaptured().position))
+            return false;
+        return true;
+    }
+
     public LinkedList<TablutAction> getBestActionFirst(int[] weights) {
         LinkedList<TablutAction> actions = getLegalActions();
         LinkedList<TablutAction> result = new LinkedList<>();
@@ -192,7 +563,7 @@ public class TablutState {
         TablutAction kingAction = null;
         if (playerTurn == BLACK) {
             for (TablutAction ka : getPawnActions(kingPosition, KING))
-                if (isOnPosition(ka.getCoordinates(), ESCAPE)) {
+                if (isOnPosition(ka.coordinates, ESCAPE)) {
                     kingAction = ka;
                     break;
                 }
@@ -230,181 +601,21 @@ public class TablutState {
     }
 
     private boolean evaluateAction(TablutAction action, int[] weights) {
-        Coordinates newPosition = action.getCoordinates();
-        Coordinates oldPosition = action.getPawn().getPosition();
-        makeTemporaryAction(action);
-
-        f(action);
-        f(action);
-        undoTemporaryAction(action);
+        Coordinates newPosition = action.coordinates;
+        Coordinates oldPosition = action.pawn.position;
         return true;
     }
 
-    public void f(TablutAction action) {
-        LinkedList<Coordinates> empty = new LinkedList<>();
-        Coordinates pos = action.getCoordinates();
-        byte enemy = this.playerTurn == WHITE ? BLACK : WHITE;
-        int losses = 0;
-        if(pos.getRow() > 0 && pos.getRow() < BOARD_SIZE - 1) {
-            if(isBlocker(pos.getRow() - 1, pos.getColumn(), enemy) && pawns[pos.getRow() + 1][pos.getColumn()] == EMPTY) {
-                losses = losses + g(pos.getRow() + 1, pos.getColumn(), 1, true);
-                if(board[pos.getRow() + 1][pos.getColumn()] == EMPTY)
-                    empty.add(new Coordinates(pos.getRow() + 1, pos.getColumn()));
-            }
-            else if(isBlocker(pos.getRow() + 1, pos.getColumn(), enemy) && pawns[pos.getRow() - 1][pos.getColumn()] == EMPTY) {
-                losses = losses + g(pos.getRow() - 1, pos.getColumn(), -1, true);
-                if(board[pos.getRow() - 1][pos.getColumn()] == EMPTY)
-                    empty.add(new Coordinates(pos.getRow() - 1, pos.getColumn()));
-            }
-        }
-        else if(pos.getColumn() > 0 && pos.getColumn() < BOARD_SIZE - 1) {
-            if(isBlocker(pos.getRow(), pos.getColumn() - 1, enemy) && pawns[pos.getRow()][pos.getColumn() + 1] == EMPTY) {
-                losses = losses + g(pos.getRow(), pos.getColumn() + 1, 1, false);
-                if(board[pos.getRow()][pos.getColumn() + 1] == EMPTY)
-                    empty.add(new Coordinates(pos.getRow(), pos.getColumn() + 1));
-            }
-            else if(isBlocker(pos.getRow(), pos.getColumn() + 1, enemy) && pawns[pos.getRow()][pos.getColumn() - 1] == EMPTY) {
-                losses = losses + g(pos.getRow(), pos.getColumn() - 1, -1, false);
-                if(board[pos.getRow()][pos.getColumn() - 1] == EMPTY)
-                    empty.add(new Coordinates(pos.getRow(), pos.getColumn() - 1));
-            }
-        }
-        
-        for(Coordinates e : empty) {
-            if(h(e, pos, enemy)) {
-                losses++;
-                break;
-            }
-        }
-        int captures = 0;
-
-        for(int i = pos.getRow() - 1; i >= 0; i--) {
-            if(pawns[i][pos.getColumn()] == enemy)
-                if(getCaptured(new Coordinates(i + 1, pos.getColumn()), this.playerTurn, i - 1, pos.getColumn()) != null) {
-                    captures++;
-                    break;
-                }
-            else if(board[i][pos.getColumn()] != EMPTY)
-                break;
-        }
-        for(int i = pos.getRow() + 1; i < BOARD_SIZE; i++) {
-            if(pawns[i][pos.getColumn()] == enemy)
-                if(getCaptured(new Coordinates(i - 1, pos.getColumn()), this.playerTurn, i + 1, pos.getColumn()) != null) {
-                    captures++;
-                    break;
-                }
-            else if(board[i][pos.getColumn()] != EMPTY)
-                break;
-        }
-
-        for(int i = pos.getColumn() - 1; i >= 0; i--) {
-            if(pawns[pos.getRow()][i] == enemy)
-                if(getCaptured(new Coordinates(pos.getRow(), i + 1), this.playerTurn, pos.getRow(), i - 1) != null) {
-                    captures++;
-                    break;
-                }
-            else if(board[i][pos.getColumn()] != EMPTY)
-                break;
-        }
-
-        for(int i = pos.getColumn() + 1; i < BOARD_SIZE; i++) {
-            if(pawns[pos.getRow()][i] == enemy)
-                if(getCaptured(new Coordinates(pos.getRow(), i - 1), this.playerTurn, pos.getRow(), i + 1) != null) {
-                    captures++;
-                    break;
-                }
-            else if(board[i][pos.getColumn()] != EMPTY)
-                break;
-        }
-    }
-
-    public boolean h(Coordinates e, Coordinates pos, byte enemy) {     
-        if(!(e.getRow() - 1 == pos.getRow() && e.getColumn() == pos.getColumn())) {
-            for(int i = e.getRow() - 1; i >= 0; i--) {
-                if(pawns[i][e.getColumn()] == enemy || (this.playerTurn == BLACK && pawns[i][e.getColumn()] == KING)) 
-                    return true;
-                else if(board[i][e.getColumn()] != EMPTY)
-                    break;
-            }
-        }
-        if(!(e.getRow() + 1 == pos.getRow() && e.getColumn() == pos.getColumn())) {
-            for(int i = e.getRow() + 1; i < BOARD_SIZE; i++) {
-                if(pawns[i][e.getColumn()] == enemy || (this.playerTurn == BLACK && pawns[i][e.getColumn()] == KING)) 
-                    return true;
-                else if(board[i][e.getColumn()] != EMPTY)
-                    break;
-            }
-        }
-        if(!(e.getRow() == pos.getRow() && e.getColumn() - 1 == pos.getColumn())) {
-            for(int i = e.getColumn() - 1; i >= 0; i--) {
-                if(pawns[e.getRow()][i] == enemy || (this.playerTurn == BLACK && pawns[e.getRow()][i] == KING)) 
-                    return true;
-                else if(board[e.getRow()][i] != EMPTY)
-                    break;
-            }
-        }
-        if(!(e.getRow() == pos.getRow() && e.getColumn() + 1 == pos.getColumn())) {
-            for(int i = e.getColumn() + 1; i < BOARD_SIZE; i++) {
-                if(pawns[e.getRow()][i]  == enemy || (this.playerTurn == BLACK && pawns[e.getRow()][i] == KING)) 
-                    return true;
-                else if(board[e.getRow()][i] != EMPTY)
-                    break;
-            }
-        }
-        return false;
-    }
-
-    public int g(int i, int j, int sign, boolean row) {
-        int losses = 0;
-        if(board[i][j] == CAMP) {
-            if(row) {
-                int k = i + sign*2;
-                while(k >= 0 && k < BOARD_SIZE && board[k][j] == CAMP && pawns[k][j] == EMPTY) 
-                    k = k + sign*1;
-                if(k >= 0 && k < BOARD_SIZE && board[k][j] == CAMP)
-                    losses++;
-            }
-            else {
-                int k = i + sign*2;
-                while(k >= 0 && k < BOARD_SIZE && board[i][k] == CAMP && pawns[i][k] == EMPTY) 
-                    k = k + sign*1;
-                if(k >= 0 && k < BOARD_SIZE && board[i][k] == CAMP)
-                    losses++;
-            }  
-        }
-        return losses;
-    }
-
-    private int kingPaths(TablutAction action, byte target) {
-        int kingRow = kingPosition.getRow();
-        int kingColumn = kingPosition.getColumn();
-        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = action.getPawn().getPawnType();
-        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = EMPTY;
-        int result = 0;
-        if (kingRow > 0 && pawns[kingRow - 1][kingColumn] == target)
-            result++;
-        else if (kingRow < BOARD_SIZE - 1 && pawns[kingRow + 1][kingColumn] == target)
-            result++;
-        else if (kingColumn >= 1 && pawns[kingRow][kingColumn - 1] == target)
-            result++;
-        else if (kingColumn < BOARD_SIZE - 1 && pawns[kingRow][kingColumn + 1] == target)
-            result++;
-
-        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = EMPTY;
-        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = action.getPawn().getPawnType();
-        return result;
-    }
-
     private boolean isPreventingLoose(TablutAction action, TablutAction kingAction) {
-        byte player = action.getPawn().getPawnType();
+        byte player = action.pawn.getPawnType();
 
         if (player == BLACK && kingAction != null) {
-            int row = action.getCoordinates().getRow();
-            int column = action.getCoordinates().getColumn();
-            int kre = kingAction.getCoordinates().getRow();
-            int krk = kingAction.getPawn().getPosition().getRow();
-            int kce = kingAction.getCoordinates().getColumn();
-            int kck = kingAction.getPawn().getPosition().getColumn();
+            int row = action.coordinates.row;
+            int column = action.coordinates.column;
+            int kre = kingAction.coordinates.row;
+            int krk = kingAction.pawn.position.row;
+            int kce = kingAction.coordinates.column;
+            int kck = kingAction.pawn.position.column;
             if (row == krk && ((column > kck && column < kce) || (column < kck && column > kce)))
                 return true;
             if (column == kck && ((row > krk && row < kre) || (row < krk && row > kre)))
@@ -414,14 +625,14 @@ public class TablutState {
     }
 
     private boolean isWin(TablutAction action) {
-        byte player = action.getPawn().getPawnType();
+        byte player = action.pawn.getPawnType();
         if (player == BLACK) {
             for (Capture capture : action.getCaptured())
-                if (pawns[capture.getCaptured().getPosition().getRow()][capture.getCaptured().getPosition().getColumn()] == KING)
+                if (pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] == KING)
                     return true;
             return blackPawns - action.getCaptured().size() == 0;
         } else {
-            if (player == KING && isOnPosition(action.getCoordinates(), ESCAPE))
+            if (player == KING && isOnPosition(action.coordinates, ESCAPE))
                 return true;
             return whitePawns - action.getCaptured().size() == 0;
         }
@@ -430,17 +641,20 @@ public class TablutState {
     public LinkedList<TablutAction> getLegalActions() {
         if (blackWin || whiteWin)
             return new LinkedList<TablutAction>();
-        LinkedList<TablutAction> actions = getLegalActions(this.playerTurn);
-        return actions;
+        return getLegalActions(this.playerTurn);
     }
 
     public LinkedList<TablutAction> getLegalActions(byte player) {
         LinkedList<TablutAction> actions = new LinkedList<>();
-        for (int i = 0; i < BOARD_SIZE; i++)
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (pawns[i][j] == player || (player == WHITE && pawns[i][j] == KING))
-                    actions.addAll(getPawnActions(new Coordinates(i, j), pawns[i][j]));
-            }
+        for(Map.Entry<Coordinates, ArrayList<LinkedList<TablutAction>>> entry : this.actionsMap.entrySet()) {
+            Coordinates c = entry.getKey();
+            if(getValue(pawns, c) == player || (player == WHITE && getValue(pawns, c) == KING))
+                for(LinkedList<TablutAction> l : entry.getValue()) {
+                    if(l == null)
+                        System.out.println("NULL");
+                    actions.addAll(l);
+                }
+        }
         return actions;
     }
 
@@ -456,33 +670,32 @@ public class TablutState {
 
     private LinkedList<TablutAction> getPawnActions(Coordinates coord, byte pawn) {
         LinkedList<TablutAction> actions = new LinkedList<>();
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i >= 0, -1, true));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i >= 0, -1, false));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i < BOARD_SIZE, 1, true));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i < BOARD_SIZE, 1, false));
+        actions.addAll(searchActions(coord, pawn, -1, true));
+        actions.addAll(searchActions(coord, pawn, -1, false));
+        actions.addAll(searchActions(coord, pawn, 1, true));
+        actions.addAll(searchActions(coord, pawn, 1, false));
         return actions;
     }
 
-    private LinkedList<TablutAction> searchActions(Coordinates coord, byte pawn, Function<Integer, Boolean> condition,
-            int step, boolean row) {
+    private LinkedList<TablutAction> searchActions(Coordinates coord, byte pawn, int step, boolean row) {
         LinkedList<TablutAction> actions = new LinkedList<>();
-        for (int i = (row ? coord.getRow() : coord.getColumn()) + step; condition.apply(i); i += step) {
+        for (int i = (row ? coord.row : coord.column) + step; (step > 0 ? i < BOARD_SIZE : i >= 0) ; i += step) {
             TablutAction action;
-            Coordinates c = new Coordinates(row ? i : coord.getRow(), !row ? i : coord.getColumn());
+            Coordinates c = new Coordinates(row ? i : coord.row, !row ? i : coord.column);
             action = new TablutAction(c, new Pawn(pawn, coord));
             if (!isLegal(action))
                 break;
             Capture captured;
-            captured = getCaptured(c, pawn, c.getRow() + 2, c.getColumn());
+            captured = getCaptured(c, pawn, c.row + 2, c.column);
             if (captured != null)
                 action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.getRow() - 2, c.getColumn());
+            captured = getCaptured(c, pawn, c.row - 2, c.column);
             if (captured != null)
                 action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.getRow(), c.getColumn() + 2);
+            captured = getCaptured(c, pawn, c.row, c.column + 2);
             if (captured != null)
                 action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.getRow(), c.getColumn() - 2);
+            captured = getCaptured(c, pawn, c.row, c.column - 2);
             if (captured != null)
                 action.addCapture(captured);
             actions.add(action);
@@ -491,22 +704,22 @@ public class TablutState {
     }
 
     private boolean isLegal(TablutAction action) {
-        int nextRow = action.getCoordinates().getRow();
-        int nextColumn = action.getCoordinates().getColumn();
-        int row = action.getPawn().getPosition().getRow();
-        int column = action.getPawn().getPosition().getColumn();
-        byte pawn = action.getPawn().getPawnType();
+        int nextRow = action.coordinates.row;
+        int nextColumn = action.coordinates.column;
+        int row = action.pawn.position.row;
+        int column = action.pawn.position.column;
+        byte pawn = action.pawn.getPawnType();
         return pawns[nextRow][nextColumn] == EMPTY
                 && (board[nextRow][nextColumn] == EMPTY || board[nextRow][nextColumn] == ESCAPE
                         || (board[nextRow][nextColumn] == CAMP && board[row][column] == CAMP && pawn == BLACK));
     }
 
     public void makeAction(TablutAction action) {
-        Coordinates pawnPosition = action.getPawn().getPosition();
-        Coordinates nextPosition = action.getCoordinates();
-        byte pawn = action.getPawn().getPawnType();
-        pawns[pawnPosition.getRow()][pawnPosition.getColumn()] = EMPTY;
-        pawns[nextPosition.getRow()][nextPosition.getColumn()] = pawn;
+        Coordinates pawnPosition = action.pawn.position;
+        Coordinates nextPosition = action.coordinates;
+        byte pawn = action.pawn.getPawnType();
+        pawns[pawnPosition.row][pawnPosition.column] = EMPTY;
+        pawns[nextPosition.row][nextPosition.column] = pawn;
         if (pawn == KING) {
             kingPosition = nextPosition;
         }
@@ -517,9 +730,9 @@ public class TablutState {
         if (!captures.isEmpty()) {
             this.drawConditions = new LinkedList<>();
             for (Capture capture : captures) {
-                if (pawns[capture.getCaptured().getPosition().getRow()][capture.getCaptured().getPosition().getColumn()] == KING)
+                if (pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] == KING)
                     blackWin = true;
-                pawns[capture.getCaptured().getPosition().getRow()][capture.getCaptured().getPosition().getColumn()] = EMPTY;
+                pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] = EMPTY;
                 if (playerTurn == WHITE) {
                     blackPawns--;
                 } else
@@ -528,6 +741,7 @@ public class TablutState {
         } else {
             checkDraw();
         }
+        updateActionMap(action);
         this.drawConditions.add(this);
         if (this.playerTurn == WHITE)
             this.playerTurn = BLACK;
@@ -536,17 +750,17 @@ public class TablutState {
     }
 
     public void makeTemporaryAction(TablutAction action) {
-        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = EMPTY;
-        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = action.getPawn().getPawnType();
+        pawns[action.pawn.position.row][action.pawn.position.column] = EMPTY;
+        pawns[action.coordinates.row][action.coordinates.column] = action.pawn.getPawnType();
         for(Capture capture : action.getCaptured()) 
-            pawns[capture.getCaptured().getPosition().getRow()][capture.getCaptured().getPosition().getColumn()] = EMPTY;
+            pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] = EMPTY;
     }
 
     public void undoTemporaryAction(TablutAction action) {
-        pawns[action.getCoordinates().getRow()][action.getCoordinates().getColumn()] = EMPTY;
-        pawns[action.getPawn().getPosition().getRow()][action.getPawn().getPosition().getColumn()] = action.getPawn().getPawnType();
+        pawns[action.coordinates.row][action.coordinates.column] = EMPTY;
+        pawns[action.pawn.position.row][action.pawn.position.column] = action.pawn.getPawnType();
         for(Capture capture : action.getCaptured()) 
-            pawns[capture.getCaptured().getPosition().getRow()][capture.getCaptured().getPosition().getColumn()] = capture.getCaptured().getPawnType(); 
+            pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] = capture.getCaptured().getPawnType(); 
     }
 
     private void checkDraw() {
@@ -564,24 +778,24 @@ public class TablutState {
         if (!isBlocker(row, column, pawn))
             return null;
         Capture captured = null;
-        if (row == position.getRow())
-            if (column > position.getColumn())
+        if (row == position.row)
+            if (column > position.column)
                 captured = new Capture(new Pawn(pawns[row][column - 1], new Coordinates(row, column - 1)));
             else
                 captured = new Capture(new Pawn(pawns[row][column + 1], new Coordinates(row, column + 1)));
-        else if (column == position.getColumn())
-            if (row > position.getRow())
+        else if (column == position.column)
+            if (row > position.row)
                 captured = new Capture(new Pawn(pawns[row - 1][column], new Coordinates(row - 1, column)));
             else
                 captured = new Capture(new Pawn(pawns[row + 1][column], new Coordinates(row + 1, column)));
         else
             return null;
         captured.setBlocker(new Pawn(pawn, new Coordinates(row, column)));
-        if (!isEnemy(pawns[captured.getCaptured().getPosition().getRow()][captured.getCaptured().getPosition().getColumn()], pawn))
+        if (!isEnemy(pawns[captured.getCaptured().position.row][captured.getCaptured().position.column], pawn))
             return null;
 
-        if (pawns[captured.getCaptured().getPosition().getRow()][captured.getCaptured().getPosition().getColumn()] == KING 
-            && !kingCaptured(captured.getCaptured().getPosition()))
+        if (pawns[captured.getCaptured().position.row][captured.getCaptured().position.column] == KING 
+            && !kingCaptured(captured.getCaptured().position))
             return null;
         return captured;
     }
@@ -616,8 +830,8 @@ public class TablutState {
     }
 
     private boolean kingCaptured(Coordinates captured) {
-        int r = captured.getRow();
-        int c = captured.getColumn();
+        int r = captured.row;
+        int c = captured.column;
         if (r < 3 || r > 5 || c < 3 || c > 5)
             return true;
         if (board[r][c] == CITADEL)
@@ -635,7 +849,7 @@ public class TablutState {
     }
 
     private boolean isOnPosition(Coordinates coordinates, byte position) {
-        return board[coordinates.getRow()][coordinates.getColumn()] == position;
+        return board[coordinates.row][coordinates.column] == position;
     }
 
     public boolean isWhiteWin() {

@@ -1,9 +1,9 @@
 import java.util.LinkedList;
 
 public class TablutAction {
-    private Coordinates coordinates;
+    Coordinates coordinates;
     private LinkedList<Capture> captured;
-    private Pawn pawn;
+    Pawn pawn;
 
     public TablutAction(Coordinates coordinates, Pawn pawn) {
         this.coordinates = coordinates;
@@ -15,12 +15,19 @@ public class TablutAction {
         captured.add(capture);
     }
 
-    public Coordinates getCoordinates() {
-        return coordinates;
+    public boolean removeCapture(Capture capture) {
+        return captured.remove(capture);
+    }
+
+    public LinkedList<Capture> getCaptured() {
+		return captured;
     }
     
-    public Pawn getPawn() {
-        return pawn;
+    public TablutAction copy() {
+        TablutAction action = new TablutAction(coordinates, pawn);
+        for(Capture c : captured) 
+            action.addCapture(c);
+        return action;
     }
 
     @Override
@@ -33,12 +40,22 @@ public class TablutAction {
             result = "WHITE: ";
         else
             result = "KING: ";
-        result += "(" + pawn.getPosition().getRow() + ", " + pawn.getPosition().getColumn() + ") - > ";
-        result += "(" + coordinates.getRow() + ", " + coordinates.getColumn() + ")";
+        result += "(" + pawn.position.row + ", " + pawn.position.column + ") - > ";
+        result += "(" + coordinates.row + ", " + coordinates.column + ")";
         return result;
     }
 
-	public LinkedList<Capture> getCaptured() {
-		return captured;
-	}
+    @Override
+	public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (this.getClass() != obj.getClass())
+            return false;
+        TablutAction a = (TablutAction) obj;
+        if(a.coordinates.equals(this.coordinates) && a.pawn.equals(this.pawn))
+            return true;
+        return false;
+    } 
 }

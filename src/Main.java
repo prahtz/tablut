@@ -1,4 +1,6 @@
-public class Main {    
+import java.util.LinkedList;
+
+public class Main {
     public static void main(String[] args) {/*
         byte[][] pawns = new byte[9][9];
         pawns[4][4] = TablutState.KING;
@@ -19,10 +21,22 @@ public class Main {
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
         while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
             TablutAction a = mcts.monteCarloTreeSearch(state);
+            /*
+            LinkedList<TablutAction> l = state.getLegalActions2();
+            if(l.size() != state.getLegalActions().size()) {
+                System.out.println("------------");
+                for(TablutAction a1 : l) System.out.println(a1.toString());
+                System.out.println(state.toString());
+                break;
+            }*/
             state = state.clone();
+            if(a == null)
+                break;
             state.makeAction(a);
             System.out.println(state.toString());
         }
+        System.out.println(state.toString());
+        System.out.println(state.isBlackWin() + " " + state.isWhiteWin() + " " + state.isDraw());
 
 
         /*

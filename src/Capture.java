@@ -21,4 +21,14 @@ public class Capture {
     public void setBlocker(Pawn blocker) {
         this.blocker = blocker;
     }
+
+    @Override
+    public String toString() {
+        return captured.toString();
+    }
+    @Override
+    public boolean equals(Object obj) {
+        Capture c = (Capture) obj;
+        return c.getCaptured().position.equals(captured.position);
+    }
 }

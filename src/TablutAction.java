@@ -12,7 +12,8 @@ public class TablutAction {
     }
 
     public void addCapture(Capture capture) {
-        captured.add(capture);
+        if(!captured.contains(capture))
+            captured.add(capture);
     }
 
     public boolean removeCapture(Capture capture) {
@@ -41,7 +42,13 @@ public class TablutAction {
         else
             result = "KING: ";
         result += "(" + pawn.position.row + ", " + pawn.position.column + ") - > ";
-        result += "(" + coordinates.row + ", " + coordinates.column + ")";
+        result += "(" + coordinates.row + ", " + coordinates.column + ") ";
+        if(!captured.isEmpty()) {
+            result += "-- Captures: ";
+        }
+        for(Capture c : captured) {
+            result += c.toString() + " ";
+        }
         return result;
     }
 

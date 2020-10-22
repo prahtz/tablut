@@ -1,34 +1,43 @@
 import java.util.LinkedList;
 
 public class Main {
-    public static void main(String[] args) {/*
+    public static void main(String[] args) {
+        
         byte[][] pawns = new byte[9][9];
-        pawns[4][4] = TablutState.KING;
-        pawns[4][3] = TablutState.WHITE;
-        pawns[4][5] = TablutState.WHITE;
-        pawns[3][4] = TablutState.WHITE;
-        pawns[5][4] = TablutState.WHITE;
-        pawns[0][0] = TablutState.BLACK;
+        /*
+        pawns[3][2] = TablutState.WHITE;
+        pawns[2][6] = TablutState.BLACK;
+        pawns[1][5] = TablutState.WHITE;
+        pawns[0][8] = TablutState.BLACK;
+        */
+        pawns[1][2] = TablutState.BLACK;
+        pawns[2][2] = TablutState.WHITE;
+        pawns[3][6] = TablutState.BLACK;
+        pawns[3][8] = TablutState.BLACK;
+        pawns[4][6] = TablutState.WHITE;
+
+        /*
+        TablutAction a = new TablutAction(new Coordinates(2, 6), new Pawn(TablutState.WHITE, new Coordinates(2, 2)));
+        a.addCapture(new Capture(new Pawn(TablutState.BLACK, new Coordinates(3,6))));
         TablutState state = new TablutState(TablutState.WHITE, pawns);
-        TablutAction a = new TablutAction(new Coordinates(2, 4), new Pawn(TablutState.WHITE, new Coordinates(3, 4)));
+        LinkedList<TablutAction> actions = state.getLegalActions(TablutState.WHITE);
+        actions.addAll(state.getLegalActions(TablutState.BLACK));
+        state.printList(actions);
         System.out.println(state.toString());
-        state = state.clone();
+
         state.makeAction(a);
+        actions = state.getLegalActions(TablutState.WHITE);
+        actions.addAll(state.getLegalActions(TablutState.BLACK));
+        state.printList(actions);
         System.out.println(state.toString());
         */
+        
         TablutState state = new TablutState(TablutState.WHITE);
         TablutGame game = new TablutGame(new int[]{0});
+        
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
         while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
             TablutAction a = mcts.monteCarloTreeSearch(state);
-            /*
-            LinkedList<TablutAction> l = state.getLegalActions2();
-            if(l.size() != state.getLegalActions().size()) {
-                System.out.println("------------");
-                for(TablutAction a1 : l) System.out.println(a1.toString());
-                System.out.println(state.toString());
-                break;
-            }*/
             state = state.clone();
             if(a == null)
                 break;
@@ -38,7 +47,7 @@ public class Main {
         System.out.println(state.toString());
         System.out.println(state.isBlackWin() + " " + state.isWhiteWin() + " " + state.isDraw());
 
-
+        
         /*
         //TablutState state = new TablutState(TablutState.WHITE);
         TablutAction a = new TablutAction(new Coordinates(1, 2), new Pawn(TablutState.WHITE, new Coordinates(4, 2)));

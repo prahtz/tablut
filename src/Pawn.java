@@ -24,4 +24,15 @@ public class Pawn {
             return true;
         return false;
     }
+
+    @Override
+    public String toString() {
+        String pawn = "WHITE";
+        if(pawnType == TablutState.KING)
+            pawn = "KING";
+        else if(pawnType == TablutState.BLACK)
+            pawn = "BLACK";
+
+        return "(" + position.row + ", " + position.column + ", " + pawn + ") ";
+    }
 }

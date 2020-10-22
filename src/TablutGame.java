@@ -29,14 +29,13 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
 
     @Override
     public double getPlayoutResult(TablutState state) {
-        int moves = 0;
+        state = state.clone();
         while (!state.isWhiteWin() && !state.isBlackWin() && !state.isDraw()) {
             LinkedList<TablutAction> actions = state.getBestActionFirst(weights);
             if (!actions.isEmpty()) {
                 TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
-                state = state.clone();
+                state = state.copySimulation();
                 state.makeAction(action);
-                moves++;
             }
         }
         double result = DRAW;
@@ -50,9 +49,10 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     @Override
     public double getUtility(TablutState state, double result) {
         byte playerTurn = state.getPlayerTurn();
+        
         if (result == DRAW)
             return result;
-        if ((result == WHITE_WIN && playerTurn == TablutState.WHITE)
+        if (result == DRAW || (result == WHITE_WIN && playerTurn == TablutState.WHITE)
                 || (result == BLACK_WIN && playerTurn == TablutState.BLACK))
             return LOOSE_WEIGHT;
         return WIN_WEIGHT;

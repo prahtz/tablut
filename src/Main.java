@@ -38,6 +38,11 @@ public class Main {
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
         while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
             TablutAction a = mcts.monteCarloTreeSearch(state);
+            LinkedList<TablutAction> list = state.getBestActionFirst(new int[]{0});
+            for(TablutAction action : list) {
+                System.out.print(action + " - " + action.getValue() + " oldCap: " + action.oldCaptures + " newCap: " 
+                    + action.newCaptures + " oldLoss: " + action.oldLoss + " newLoss: " + action.newLoss + " willBeCap: " + action.isWillBeCaptured() + "\n");
+            }
             state = state.clone();
             if(a == null)
                 break;

@@ -1,14 +1,22 @@
 import java.util.LinkedList;
 
-public class TablutAction {
+public class TablutAction implements Comparable<TablutAction>{
     Coordinates coordinates;
     private LinkedList<Capture> captured;
     Pawn pawn;
+    private double value;
+
+    int oldCaptures = 0;
+    int newCaptures = 0;
+    int oldLoss = 0;
+    int newLoss = 0;
+    boolean willBeCaptured = false;
 
     public TablutAction(Coordinates coordinates, Pawn pawn) {
         this.coordinates = coordinates;
         this.captured = new LinkedList<>();
         this.pawn = pawn;
+        this.value = 0;
     }
 
     public void addCapture(Capture capture) {
@@ -64,5 +72,30 @@ public class TablutAction {
         if(a.coordinates.equals(this.coordinates) && a.pawn.equals(this.pawn))
             return true;
         return false;
-    } 
+    }
+
+    public double getValue() {
+        return value;
+    }
+
+    public void setValue(double value) {
+        this.value = value;
+    }
+
+    @Override
+    public int compareTo(TablutAction o) {
+        if(o.getValue() > value)
+            return 1;
+        else if(o.getValue() < value)
+            return -1;
+        return 0;
+    }
+
+    public boolean isWillBeCaptured() {
+        return willBeCaptured;
+    }
+
+    public void setWillBeCaptured(boolean willBeCaptured) {
+        this.willBeCaptured = willBeCaptured;
+    }
 }

@@ -535,6 +535,7 @@ public class TablutState {
             Capture c = new Capture(new Pawn(getValue(pawns, capturedPos), capturedPos));
             if(c.getCaptured().getPawnType() != EMPTY && !isCapture(c, getValue(pawns, enemyPos)))
                 return;
+            
             if(c.getCaptured().getPawnType() == EMPTY) {
                 if(!(captured == KING && !kingCaptured(capturedPos))) {
                     updateCaptureMap(captureMapCopy, c, false);
@@ -742,8 +743,9 @@ public class TablutState {
         LinkedList<TablutAction> result = new LinkedList<>();
         int actualCaptures = 0;
         int actualLoss = 0;
-
+        
         capturesMap = new HashMap<>();
+        
         for(TablutAction a : actions) 
             for(Capture c : a.getCaptured())
                 updateCaptureMap(capturesMap, c, true);
@@ -764,7 +766,7 @@ public class TablutState {
                     first.addFirst(action);
                 else if(!action.getCaptured().isEmpty())
                     first.addFirst(action);
-                else if(action.getValue() >= -10)
+                else if(action.getValue() >= -1)
                     result.add(action);   
         }
         Collections.sort(result);
@@ -814,7 +816,7 @@ public class TablutState {
         if(willBeCaptured) {
             newCaptures = 0;
         }
-        return newCaptures - newLoss;
+        return (newCaptures + newActiveCaptures - oldCaptures) - (newLoss - oldLoss);
     }
 
     private boolean isPreventingLoose(TablutAction action, TablutAction kingAction) {

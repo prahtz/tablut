@@ -34,6 +34,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
             LinkedList<TablutAction> actions = state.getBestActionFirst(weights);
             if (!actions.isEmpty()) {
                 TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
+                //TablutAction action = actions.getFirst();
                 state = state.copySimulation();
                 state.makeAction(action);
             }

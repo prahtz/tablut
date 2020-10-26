@@ -1,4 +1,6 @@
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -43,10 +45,24 @@ public class Main {
                 System.out.print(action + " - " + action.getValue() + " oldCap: " + action.oldCaptures + " newCap: " 
                     + action.newCaptures + " oldLoss: " + action.oldLoss + " newLoss: " + action.newLoss + " willBeCap: " + action.isWillBeCaptured() + "\n");
             }
+
             state = state.clone();
             if(a == null)
                 break;
             state.makeAction(a);
+
+            
+
+            LinkedList<TablutAction> actions = state.getLegalActions();
+            actions.addAll(state.getLegalActions(state.getPlayerTurn() == TablutState.BLACK ? TablutState.WHITE : TablutState.BLACK));
+            HashMap<Capture, Integer> capturesMap = new HashMap<>();
+            for(TablutAction a1 : actions) 
+                for(Capture c : a1.getCaptured())
+                    state.updateCaptureMap(capturesMap, c, true);
+            for(Map.Entry<Capture, Integer> e : capturesMap.entrySet()) {
+                System.out.println(e.getKey().toString());
+            }
+            
             System.out.println(state.toString());
         }
         System.out.println(state.toString());

@@ -43,17 +43,19 @@ public class Main {
             
             LinkedList<TablutAction> list = state.getBestActionFirst(new int[]{0});
             
+            /*
             for(TablutAction action : list) {
-                System.out.print(action + " - " + action.getValue() + " oldCap: " + action.oldCaptures + " newCap: " 
-                    + action.newCaptures + " oldLoss: " + action.oldLoss + " newLoss: " + action.newLoss + " willBeCap: " + action.isWillBeCaptured() + "\n");
-            }
+                System.out.print(action + " - " + action.getValue() + " capDiff: " + action.capturesDiff + " lossDiff: " 
+                + action.lossDiff + " kmDiff: " + action.kingMovesDiff +  " kCM: " + action.kingCheckmate 
+                + " wbc: " + action.isWillBeCaptured() + "\n");
+            }*/
 
             state = state.clone();
             if(a == null)
                 break;
             state.makeAction(a);
 
-            
+            /*
             
             LinkedList<TablutAction> actions = state.getLegalActions();
             actions.addAll(state.getLegalActions(state.getPlayerTurn() == TablutState.BLACK ? TablutState.WHITE : TablutState.BLACK));
@@ -63,7 +65,7 @@ public class Main {
                     state.updateCaptureMap(capturesMap, c, true);
             for(Map.Entry<Capture, Integer> e : capturesMap.entrySet()) {
                 System.out.println(e.getKey().toString());
-            }
+            }*/
             
             System.out.println(state.toString());
         }

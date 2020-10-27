@@ -136,7 +136,7 @@ public class GeneticAlgorithm<A> {
 			bestIndividual = retrieveBestIndividual(population, fitnessFn);
 
 			updateMetrics(population, ++itCount, System.currentTimeMillis() - startTime);
-
+			System.out.println("BO: " + itCount);
 			// until some individual is fit enough, or enough time has elapsed
 			if (maxTimeMilliseconds > 0L && (System.currentTimeMillis() - startTime) > maxTimeMilliseconds)
 				break;

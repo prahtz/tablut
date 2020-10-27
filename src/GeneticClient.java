@@ -11,7 +11,7 @@ public class GeneticClient {
     private long endTime;
 
     private static final int WEIGHTS_NUMBER = 5;
-    private static final int POPULATION_NUMBER = 10;
+    private static final int POPULATION_NUMBER = 1;
     private static final int WEIGHTS_LIMIT = 500;
     private static final int MAX_ITERATION = 10;
 
@@ -27,8 +27,8 @@ public class GeneticClient {
         Metrics result = new Metrics();
         TablutGame train = new TablutGame(weights);
         TablutGame enemy = new TablutGame(new int[]{0,0,0,0,0});
-        MonteCarloTreeSearch<TablutState, TablutAction> mctsTrain = new MonteCarloTreeSearch<>(train, 5);
-        MonteCarloTreeSearch<TablutState, TablutAction> mctsEnemy = new MonteCarloTreeSearch<>(enemy, 5);
+        MonteCarloTreeSearch<TablutState, TablutAction> mctsTrain = new MonteCarloTreeSearch<>(train, 1);
+        MonteCarloTreeSearch<TablutState, TablutAction> mctsEnemy = new MonteCarloTreeSearch<>(enemy, 1);
         TablutState s = new TablutState(TablutState.WHITE);
         int moves = 0;
         while(!s.isWhiteWin() && !s.isBlackWin() && !s.isDraw() && end - start < endTime) {
@@ -41,7 +41,7 @@ public class GeneticClient {
                 break;
             s = s.clone();
             s.makeAction(a);
-            System.out.println(s.toString());
+            //System.out.println(s.toString());
             moves++;
             end = System.currentTimeMillis();
         }
@@ -72,14 +72,7 @@ public class GeneticClient {
         }
         Genetic g = new Genetic(WEIGHTS_NUMBER, finiteAlphabet, 0.3);
         List<Individual<Integer>> population = getPopulation();
-        ArrayList<Integer> weights = new ArrayList<>();
         
-        weights.add(TablutState.THRESHOLD, -102);
-        weights.add(TablutState.CAPTURED, 106);
-        weights.add(TablutState.KING_WHITE, 19);
-        weights.add(TablutState.KING_BLACK, -51);
-        weights.add(TablutState.KING_EMPTY, -2);
-        population.add(0, new Individual<>(weights));
         Individual<Integer> result = g.geneticAlgorithm(population, new Fitness(), MAX_ITERATION);
         for(int i = 0; i < 5; i++) {
             System.out.println("RESULT: " + result.getRepresentation().get(i));
@@ -96,12 +89,6 @@ public class GeneticClient {
     private static Individual<Integer> getIndividualRandom() {
         ArrayList<Integer> weights = new ArrayList<>();
         Random rand = new Random();
-
-        weights.add(TablutState.THRESHOLD, -getNearRandom(100));
-        weights.add(TablutState.CAPTURED, getNearRandom(100));
-        weights.add(TablutState.KING_WHITE, getNearRandom(10));
-        weights.add(TablutState.KING_BLACK,  -getNearRandom(50));
-        weights.add(TablutState.KING_EMPTY, (rand.nextBoolean() ? 1 : -1) * getNearRandom(0));
         return new Individual<>(weights);
     }
 

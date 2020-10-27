@@ -28,11 +28,11 @@ public class MonteCarloTreeSearch<S, A> {
         }
         
         System.out.println("Root values: " + tree.getUtility() + "/" + tree.getPlayoutsNumber());
-        /*
+        
         for(MonteCarloNode<S, A> node : tree.getChildren())
             System.out.println(node.getAction().toString() + " " + node.getUtility() + "/" + node.getPlayoutsNumber() +
                 " = " + node.getUtility()/node.getPlayoutsNumber());
-*/
+
         return bestAction(tree);   
     }
 

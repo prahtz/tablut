@@ -6,10 +6,10 @@ public class TablutAction implements Comparable<TablutAction>{
     Pawn pawn;
     private double value;
 
-    int oldCaptures = 0;
-    int newCaptures = 0;
-    int oldLoss = 0;
-    int newLoss = 0;
+    int capturesDiff = 0;
+    int lossDiff = 0;
+    int kingMovesDiff = 0;
+    boolean kingCheckmate = false;
     boolean willBeCaptured = false;
 
     public TablutAction(Coordinates coordinates, Pawn pawn) {

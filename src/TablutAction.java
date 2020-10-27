@@ -98,4 +98,9 @@ public class TablutAction implements Comparable<TablutAction>{
     public void setWillBeCaptured(boolean willBeCaptured) {
         this.willBeCaptured = willBeCaptured;
     }
+
+    @Override
+    public int hashCode() {
+        return coordinates.hashCode() * 100 + pawn.position.hashCode();
+    }
 }

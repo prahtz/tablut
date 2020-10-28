@@ -165,19 +165,21 @@ public class TablutState {
         this.actionsMap = new HashMap<>();
         for (int i = 0; i < BOARD_SIZE; i++)
             for (int j = 0; j < BOARD_SIZE; j++) {
-                if (pawns[i][j] != EMPTY)
-                    addActions(new Coordinates(i, j), pawns[i][j]);
+                if (pawns[i][j] != EMPTY) {
+                    Coordinates coord = new Coordinates(i, j);
+                    this.actionsMap.put(coord, getPawnActions(coord, pawns[i][j]));
+                }
             }
     }
 
     //TODO - change .add to .set in some way -> .add is not constant time!!!
-    private void addActions(Coordinates coord, byte pawn) {
+    private ArrayList<LinkedList<TablutAction>> getPawnActions(Coordinates coord, byte pawn) {
         ArrayList<LinkedList<TablutAction>> actionArray = new ArrayList<>(4);
         actionArray.add(Directions.UP.value(), searchActions(coord, pawn, -1, true));
         actionArray.add(Directions.RIGHT.value(), searchActions(coord, pawn, 1, false));
         actionArray.add(Directions.DOWN.value(), searchActions(coord, pawn, 1, true));
-        actionArray.add(Directions.LEFT.value(), searchActions(coord, pawn, -1, false));     
-        this.actionsMap.put(coord, actionArray);
+        actionArray.add(Directions.LEFT.value(), searchActions(coord, pawn, -1, false));
+        return actionArray;
     }
 
     public void initPawns() {
@@ -564,9 +566,6 @@ public class TablutState {
             }
             else {
                 updateCaptureMap(captureMapCopy, c, enemyPos, true);
-                if(tempAction.coordinates.equals(capturedPos)) {
-                    this.willBeCaptured = true;
-                }
             }
         }
         else {
@@ -714,44 +713,33 @@ public class TablutState {
                 whiteWin = true;
             return result;
         }
-        int minHash = Integer.MAX_VALUE;
         if (playerTurn == BLACK) {
             for(LinkedList<TablutAction> list : actionsMap.get(kingPosition)) {
                 for(TablutAction ka : list) {
                     if(isOnPosition(ka.coordinates, ESCAPE)) {
-                        if(ka.coordinates.hashCode() < minHash) {
-                            kingAction = ka;
-                            minHash = ka.coordinates.hashCode();
-                        //stop = true;
-                        }
-                        //break;
+                        kingAction = ka;
+                        stop = true;
+                        break;
                     }
                 }
-                //if(stop) break;
+                if(stop) break;
             }
         }
         else if(firstMove) {
             firstMove = false;
             return whiteOpenings();
         }
-
-        boolean win = false;
-        minHash = Integer.MAX_VALUE;
         for (TablutAction action : actions) {
             if (isWin(action)) {
-                if(action.hashCode() < minHash) {
-                    minHash = action.hashCode();
-                    result = new LinkedList<>();
-                    result.add(action);
-                    win = true;
-                    //break;
-                }
-            } else if (!win && isPreventingLoose(action, kingAction)) {
+                result = new LinkedList<>();
+                result.add(action);
+                break;   
+            } else if (isPreventingLoose(action, kingAction)) {
                 if(!loosing)
                     result = new LinkedList<>();
                 result.add(action);
                 loosing = true;
-            } else if (!win && !loosing)
+            } else if (!loosing)
                 result.addLast(action);
         }
         if (result.isEmpty()) {
@@ -777,46 +765,37 @@ public class TablutState {
             else
                 whiteWin = true;
             return result;
-        }
-        
-        int minHash = Integer.MAX_VALUE;
+        }              
         if (playerTurn == BLACK) {
             for(LinkedList<TablutAction> list : actionsMap.get(kingPosition)) {
                 for(TablutAction ka : list) {
                     if(isOnPosition(ka.coordinates, ESCAPE)) {
-                        if(ka.coordinates.hashCode() < minHash) {
-                            kingAction = ka;
-                            minHash = ka.coordinates.hashCode();
-                        }
-                        //stop = true;
-                        //break;
+                        kingAction = ka;
+                        stop = true;
+                        break;
                     }
                 }
-                //if(stop) break;
+                if(stop) break;
             }
         }
-        else if(firstMove) {
+        if(firstMove) {
             firstMove = false;
-            return whiteOpenings();
+            result = whiteOpenings();
         }
-        boolean win = false;
-        minHash = Integer.MAX_VALUE;
-        for (TablutAction action : actions) {
-            if (isWin(action)) {
-                if(action.hashCode() < minHash) {
-                    minHash = action.hashCode();
+        else {
+            for (TablutAction action : actions) {
+                if (isWin(action)) {
                     result = new LinkedList<>();
                     result.add(action);
-                    win = true;
-                }
-                //break;
-            } else if (!win && isPreventingLoose(action, kingAction)) {
-                if(!loosing)
-                    result = new LinkedList<>();
-                result.add(action);
-                loosing = true;
-            } else if (!win && !loosing)
-                result.addLast(action);
+                    break;
+                } else if (isPreventingLoose(action, kingAction)) {
+                    if(!loosing)
+                        result = new LinkedList<>();
+                    result.add(action);
+                    loosing = true;
+                } else if (!loosing)
+                    result.addLast(action);
+            }
         }
         if(!(result.size() == 1 || loosing))
             result = getFinalActions(result, weights);
@@ -868,40 +847,9 @@ public class TablutState {
                 oldCaptures++;
             else
                 oldLoss++;
-        //DEBUG -> old cap/loss
-        
-        int oldCapturesDebug = 0;
-        int oldLossDebug = 0;
-        LinkedList<Capture> debCaptures = new LinkedList<>();
-        LinkedList<Capture> debLoss = new LinkedList<>();
-        for(TablutAction a : getLegalActionsDebug()) {
-            for(Capture c : a.getCaptured()) {
-                if(!debCaptures.contains(c)) {
-                    debCaptures.add(c);
-                    oldCapturesDebug++;
-                }
-            }
-        }
-
-        for(TablutAction a : getLegalActionsDebug(this.playerTurn == WHITE ? BLACK : WHITE)) {
-            for(Capture c : a.getCaptured()) {
-                if(!debLoss.contains(c)) {
-                    debLoss.add(c);
-                    oldLossDebug++;
-                }
-            }
-        }
-
-        if(oldCaptures != oldCapturesDebug || oldLoss != oldLossDebug) {
-            System.out.println("RealOldCap: " + oldCaptures + "\nDebugOldCap: " + oldCapturesDebug);
-            System.out.println("RealOldLoss: " + oldLoss + "\nDebugOldLoss: " + oldLossDebug);
-            throw new RuntimeException();
-        }
-        //END DEBUG -> old cap/loss
 
         for(Integer i : getKingPaths())
             oldKingMoves += i;
-
 
         LinkedList<TablutAction> first = new LinkedList<>();
         for (TablutAction action : actions) {
@@ -919,148 +867,83 @@ public class TablutState {
         return result;
     }
 
-    private TablutAction tempAction;
-    private boolean willBeCaptured;
+    //private TablutAction tempAction;
     private HashMap<Capture, LinkedList<Coordinates>> captureMapCopy;
-    private boolean kingCheckmate;
 
     private double evaluateAction(TablutAction action, int[] weights, int oldCaptures, int oldLoss, int oldKingMoves) {
         int newCaptures = 0;
         int newLoss = 0;
+        boolean kingCheckmate = false;
+        boolean willBeCaptured = false;
         this.newActiveCaptures = 0;
-        this.tempAction = action;
-        this.willBeCaptured = false;
         this.captureMapCopy = new HashMap<>();
         this.kingPaths = getKingPaths();
-        this.kingCheckmate = false;
         
-        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : this.capturesMap.entrySet()) {
+        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : this.capturesMap.entrySet()) 
             captureMapCopy.put(entry.getKey(), new LinkedList<>(entry.getValue()));
-        }
         if(action.pawn.getPawnType() == KING)
             return 0;
+        
         makeTemporaryAction(action);
-        
-        //DEBUG -> new cap/loss
-        int newCapturesDebug = 0;
-        int newLossDebug = 0;
-        LinkedList<Capture> debCaptures = new LinkedList<>();
-        LinkedList<Capture> debLoss = new LinkedList<>();
-
-        for(TablutAction a : getLegalActionsDebug()) {
-            for(Capture c : a.getCaptured()) {
-                if(!debCaptures.contains(c)) {
-                    debCaptures.add(c);
-                    newCapturesDebug++;
-                }
-            }
-        }
-        boolean willBeCapturedDebug = false;
-        for(TablutAction a : getLegalActionsDebug(this.playerTurn == WHITE ? BLACK : WHITE)) {
-            for(Capture c : a.getCaptured()) {
-                if(c.getCaptured().position.equals(action.coordinates))
-                    willBeCapturedDebug = true;
-                if(!debLoss.contains(c)) {
-                    debLoss.add(c);
-                    newLossDebug++;
-                }
-            }
-        }
-        
-        LinkedList<TablutAction> kingActionsDebug = getPawnActions(kingPosition, KING);
-        int newKingMovesDebug = kingActionsDebug.size();
-        LinkedList<Coordinates> escapeList = new LinkedList<>();
-
-        boolean kingCheckmateDebug = false;
-        for(TablutAction ka : kingActionsDebug) {
-            int escapes = 0;
-            escapeList = new LinkedList<>();
-            for(TablutAction ea : getPawnActions(ka.coordinates, KING)) {
-                if(isOnPosition(ea.coordinates, ESCAPE)) {
-                    escapeList.add(ea.coordinates);
-                    escapes++;
-                    if(escapes > 1) {
-                        kingCheckmateDebug = true;
-                        break;
-                    }
-                }
-            }
-            if(kingCheckmateDebug)
-                break;
-        }
-
-
-
-
+        if(action.pawn.getPawnType() != KING)
+            kingCheckmate = isKingCheckmate();
         updateActionMap(action, true);
         undoTemporaryAction(action);
 
         int newKingMoves = 0;
-        for(Directions dir : Directions.values()) {
+        for(Directions dir : Directions.values()) 
             newKingMoves += kingPaths.get(dir.value());
-        }
 
-        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : captureMapCopy.entrySet()) {
-            if(isEnemy(entry.getKey().getCaptured().getPawnType(), this.playerTurn))
+        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : captureMapCopy.entrySet()) 
+            if(isEnemy(entry.getKey().getCaptured().getPawnType(), this.playerTurn) && !entry.getValue().contains(action.coordinates))
                 newCaptures++;
-            else
+            else {
                 newLoss++;
-        }
-
-        if(willBeCapturedDebug != willBeCaptured) {
-            System.out.println(action);
-            System.out.println("debug: " + willBeCapturedDebug);
-            System.out.println("real: " + willBeCaptured);
-            System.out.println(this);
-            throw new RuntimeException();
-        }
-
-        
-        if(newKingMoves != newKingMovesDebug) {
-            throw new RuntimeException();
-        }
-
-
-        if(newCaptures != newCapturesDebug || newLoss != newLossDebug) {
-            makeTemporaryAction(action);
-            //printList(getLegalActionsDebug());
-            //printList(getLegalActionsDebug(this.playerTurn == WHITE ? BLACK : WHITE));
-            System.out.println(action);
-            System.out.println("RealNewCap: " + newCaptures + "\nDebugNewCap: " + newCapturesDebug);
-            System.out.println("RealNewLoss: " + newLoss + "\nDebugNewLoss: " + newLossDebug);
-            System.out.println("Old Captures: ");
-            for(Map.Entry<Capture, LinkedList<Coordinates>> entry : capturesMap.entrySet()) 
-                System.out.println(entry.getKey() + " -> " + entry.getValue());
-                System.out.println("New Captures: ");
-            for(Map.Entry<Capture, LinkedList<Coordinates>> entry : captureMapCopy.entrySet()) 
-                System.out.println(entry.getKey() + " -> " + entry.getValue());
-            System.out.println(this);
-            throw new RuntimeException();
-        }
-        //END DEBUG -> new cap/loss*/
-
+                if(entry.getKey().getCaptured().position.equals(action.coordinates))
+                    willBeCaptured = true;
+            }
         
         int capturesDiff = (newCaptures + newActiveCaptures - oldCaptures);
         int lossDiff = (newLoss - oldLoss);
+        int totalDiff = capturesDiff - lossDiff;
         int kingMovesDiff = newKingMoves - oldKingMoves;
 
-        action.capturesDiff = capturesDiff;
-        action.lossDiff = lossDiff;
-        action.kingMovesDiff = kingMovesDiff;
-        action.kingCheckmate = kingCheckmate;
-        action.willBeCaptured = willBeCaptured;
+        if(playerTurn == BLACK && kingCheckmate)
+            return -1;
+        if(action.pawn.getPawnType() == KING)
+            return willBeCaptured ? -1 : 0;
+        return totalDiff + kingMovesDiff + (willBeCaptured ? 1 : -1); 
+    }
 
-        if(!action.getCaptured().isEmpty())
-            return 0;
-        if(willBeCaptured) {
-            newCaptures = 0;
+    private boolean isKingCheckmate() {
+        boolean kingCheckmate = false;
+        ArrayList<LinkedList<TablutAction>> kingActions = getPawnActions(kingPosition, KING);
+        for(Directions dir : Directions.values()) {
+            int initialEscapes = 0;
+            if(searchEscape(kingPosition, dir)) {
+                if(playerTurn == BLACK) {
+                    kingCheckmate = true;
+                    break;
+                }
+                initialEscapes = 1;
+            }
+            for(TablutAction a : kingActions.get(dir.value())) {
+                if(!isOnPosition(a.coordinates, ESCAPE)) {
+                    int escapes = initialEscapes;
+                    for(Directions dirToEscape : getOtherAxisDirections(dir)) {
+                        if(searchEscape(a.coordinates, dirToEscape)) 
+                            escapes++;
+                        if(escapes > 1) {
+                            kingCheckmate = true;
+                            break;
+                        }
+                    }
+                    if(kingCheckmate)
+                        break;
+                }
+            }
         }
-        if(playerTurn == WHITE && kingCheckmate)
-            return 1000;
-        else if(playerTurn == BLACK && kingCheckmate)
-            return -1000;
-
-        return capturesDiff - lossDiff;
+        return kingCheckmate;
     }
 
     private boolean isPreventingLoose(TablutAction action, TablutAction kingAction) {
@@ -1087,12 +970,12 @@ public class TablutState {
             for (Capture capture : action.getCaptured())
                 if (pawns[capture.getCaptured().position.row][capture.getCaptured().position.column] == KING)
                     return true;
-            return blackPawns - action.getCaptured().size() == 0;
         } else {
             if (player == KING && isOnPosition(action.coordinates, ESCAPE))
                 return true;
-            return whitePawns - action.getCaptured().size() == 0;
+            return blackPawns - action.getCaptured().size() == 0;
         }
+        return false;
     }
 
     public LinkedList<TablutAction> getLegalActions() {
@@ -1180,26 +1063,18 @@ public class TablutState {
             Capture captured;
             captured = getCaptured(c, pawn, c.row + 2, c.column);
             if (captured != null) {
-                if(captured.getCaptured().position.equals(tempAction.coordinates))
-                    this.willBeCaptured = true;
                 updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row - 2, c.column);
             if (captured != null) {
-                if(captured.getCaptured().position.equals(tempAction.coordinates))
-                    this.willBeCaptured = true;
                 updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row, c.column + 2);
             if (captured != null) {
-                if(captured.getCaptured().position.equals(tempAction.coordinates))
-                    this.willBeCaptured = true;
                 updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row, c.column - 2);
             if (captured != null) {
-                if(captured.getCaptured().position.equals(tempAction.coordinates))
-                    this.willBeCaptured = true;
                 updateCaptureMap(captureMapCopy, captured, coord, true);
             }
         }
@@ -1223,13 +1098,7 @@ public class TablutState {
         Coordinates pawnPosition = action.pawn.position;
         Coordinates nextPosition = action.coordinates;
         byte pawn = action.pawn.getPawnType();
-        /*
-        for(TablutAction a1 : getLegalActions()) {
-            System.out.println(a1);
-        }
-        for(TablutAction a1 : getLegalActions(this.playerTurn == WHITE ? BLACK : WHITE)) {
-            System.out.println(a1);
-        }*/
+
         pawns[pawnPosition.row][pawnPosition.column] = EMPTY;
         pawns[nextPosition.row][nextPosition.column] = pawn;
         if (pawn == KING) {
@@ -1403,10 +1272,6 @@ public class TablutState {
         return this.playerTurn;
     }
 
-    public void setDraw(boolean draw) {
-        this.draw = draw;
-    }
-
     public LinkedList<TablutState> getDrawConditions() {
         return this.drawConditions;
     }
@@ -1417,125 +1282,5 @@ public class TablutState {
 
     public int getWhitePawns() {
         return whitePawns;
-    }
-
-    public LinkedList<TablutAction> getLegalActionsDebug() {
-        if (blackWin || whiteWin || draw)
-            return new LinkedList<TablutAction>();
-        LinkedList<TablutAction> actions = getLegalActionsDebug(this.playerTurn);
-        return actions;
-    }
-
-    public LinkedList<TablutAction> getLegalActionsDebug(byte player) {
-        LinkedList<TablutAction> actions = new LinkedList<>();
-        for (int i = 0; i < BOARD_SIZE; i++)
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (pawns[i][j] == player || (player == WHITE && pawns[i][j] == KING))
-                    actions.addAll(getPawnActions(new Coordinates(i, j), pawns[i][j]));
-            }
-        return actions;
-    }
-
-    private LinkedList<TablutAction> getPawnActions(Coordinates coord, byte pawn) {
-        LinkedList<TablutAction> actions = new LinkedList<>();
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i >= 0, -1, true));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i >= 0, -1, false));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i < BOARD_SIZE, 1, true));
-        actions.addAll(searchActions(coord, pawn, (Integer i) -> i < BOARD_SIZE, 1, false));
-        return actions;
-    }
-
-    private LinkedList<TablutAction> searchActions(Coordinates coord, byte pawn, Function<Integer, Boolean> condition,
-            int step, boolean row) {
-        LinkedList<TablutAction> actions = new LinkedList<>();
-        for (int i = (row ? coord.row : coord.column) + step; condition.apply(i); i += step) {
-            TablutAction action;
-            Coordinates c = new Coordinates(row ? i : coord.row, !row ? i : coord.column);
-            action = new TablutAction(c, new Pawn(pawn, coord));
-            if (!isLegal(action))
-                break;
-            Capture captured;
-            captured = getCaptured(c, pawn, c.row + 2, c.column);
-            if (captured != null)
-                action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.row - 2, c.column);
-            if (captured != null)
-                action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.row, c.column + 2);
-            if (captured != null)
-                action.addCapture(captured);
-            captured = getCaptured(c, pawn, c.row, c.column - 2);
-            if (captured != null)
-                action.addCapture(captured);
-            actions.add(action);
-        }
-        return actions;
-    }
-    
-    public LinkedList<TablutAction> getBestActionsDebug(boolean first) {
-        if(whiteWin || blackWin || draw)
-            return new LinkedList<>();
-        LinkedList<TablutAction> actions = getLegalActionsDebug();
-        LinkedList<TablutAction> result = new LinkedList<>();
-        boolean loosing = false;
-        TablutAction kingAction = null;
-
-        if (actions.isEmpty()) {
-            if (playerTurn == WHITE)
-                blackWin = true;
-            else
-                whiteWin = true;
-            return result;
-        }
-
-        int minHash = Integer.MAX_VALUE;
-        if (playerTurn == BLACK) {
-            for (TablutAction ka : getPawnActions(kingPosition, KING))
-                if (isOnPosition(ka.coordinates, ESCAPE)) {
-                    if(ka.coordinates.hashCode() < minHash) {
-                        kingAction = ka;
-                        minHash = ka.coordinates.hashCode();
-                    }
-                }
-        }
-        else if(first) {
-            return whiteOpeningsDebug();
-        }
-
-        boolean win = false;
-        minHash = Integer.MAX_VALUE;
-        for (TablutAction action : actions) {
-            if (isWin(action)) {
-                if(action.hashCode() < minHash) {
-                    minHash = action.hashCode();
-                    result = new LinkedList<>();
-                    result.add(action);
-                    win = true;
-                    //break;
-                }
-            } else if (!win && isPreventingLoose(action, kingAction)) {
-                if(!loosing)
-                    result = new LinkedList<>();
-                result.add(action);
-                loosing = true;
-            } else if (!win && !loosing)
-                result.addLast(action);
-        }
-        if(result.isEmpty())
-            return actions;
-        return result;
-    }
-    
-    public LinkedList<TablutAction> whiteOpeningsDebug() {
-        LinkedList<TablutAction> result = new LinkedList<>();
-        if(this.playerTurn == WHITE) {
-            result.addAll(getPawnActions(new Coordinates(2, 4), WHITE));
-            result.addAll(getPawnActions(new Coordinates(3, 4), WHITE));
-        }
-        return result;
-    }
-
-    public boolean isFirstMove() {
-        return firstMove;
     }
 }

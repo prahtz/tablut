@@ -1,7 +1,3 @@
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-
 public class Main {
     public static void main(String[] args) {
         
@@ -40,10 +36,10 @@ public class Main {
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
         while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
             TablutAction a = mcts.monteCarloTreeSearch(state);
-            
+            /*
             LinkedList<TablutAction> list = state.getBestActionFirst(new int[]{0});
             
-            /*
+            
             for(TablutAction action : list) {
                 System.out.print(action + " - " + action.getValue() + " capDiff: " + action.capturesDiff + " lossDiff: " 
                 + action.lossDiff + " kmDiff: " + action.kingMovesDiff +  " kCM: " + action.kingCheckmate 

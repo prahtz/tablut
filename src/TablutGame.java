@@ -19,11 +19,12 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
 
     @Override
     public LinkedList<TablutAction> getActions(TablutState state) {
-        boolean first = state.isFirstMove();
-        LinkedList<TablutAction> debugResult = state.clone().getBestActionsDebug(first);
+        //boolean first = state.isFirstMove();
+        //LinkedList<TablutAction> debugResult = state.clone().getBestActionsDebug(first);
         LinkedList<TablutAction> result = state.getBestActionFirst(weights); 
-        int debugCaptures = countCaptures(debugResult);
+        //int debugCaptures = countCaptures(debugResult);
         int realCaptures = countCaptures(result);
+        /*
         if(result.size() != debugResult.size() || debugCaptures != realCaptures) {
             System.out.println("DebugCap: " + debugCaptures);
             System.out.println("RealCap: " + realCaptures);
@@ -33,7 +34,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
             System.out.println("REAL");
             state.printList(result);
             throw new RuntimeException();
-        }
+        }*/
         return state.getBestActionFirst(weights);
     }
 
@@ -55,12 +56,13 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     public double getPlayoutResult(TablutState state) {
         state = state.clone();
         while (!state.isWhiteWin() && !state.isBlackWin() && !state.isDraw()) {
-            boolean first = state.isFirstMove();
-            TablutState cloneState = state.clone();
-            LinkedList<TablutAction> debugActions = cloneState.getBestActionsDebug(first);
+            //boolean first = state.isFirstMove();
+            //TablutState cloneState = state.clone();
+            //LinkedList<TablutAction> debugActions = cloneState.getBestActionsDebug(first);
             LinkedList<TablutAction> actions = state.getSimulatingActions();
-            int debugCaptures = countCaptures(debugActions);
+            //int debugCaptures = countCaptures(debugActions);
             int realCaptures = countCaptures(actions);
+            /*
             if(actions.size() != debugActions.size() || debugCaptures != realCaptures) {
                 System.out.println("DebugCap: " + debugCaptures);
                 System.out.println("RealCap: " + realCaptures);
@@ -73,7 +75,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
                 System.out.println(state);
                 System.out.println(cloneState);
                 throw new RuntimeException();
-            }
+            }*/
             if (!actions.isEmpty()) {
                 TablutAction action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
                 //TablutAction action = actions.getFirst();

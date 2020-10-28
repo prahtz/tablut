@@ -32,7 +32,7 @@ public class TablutState {
     private int whitePawns;
     private LinkedList<TablutState> drawConditions;
     private HashMap<Coordinates, ArrayList<LinkedList<TablutAction>>> actionsMap;
-    private HashMap<Capture, Integer> capturesMap;
+    private HashMap<Capture, LinkedList<Coordinates>> capturesMap;
 
     private int newActiveCaptures;
     private boolean firstMove = false;
@@ -285,7 +285,7 @@ public class TablutState {
             for(LinkedList<TablutAction> list : previousActions) {
                 for(TablutAction a : list) {
                     for(Capture c : a.getCaptured()) {
-                        updateCaptureMap(captureMapCopy, c, false);
+                        updateCaptureMap(captureMapCopy, c, a.pawn.position, false);
                     }
                 }
             }
@@ -295,7 +295,7 @@ public class TablutState {
                 for(LinkedList<TablutAction> list : actionsMap.get(c.getCaptured().position)) {
                     for(TablutAction a : list) {
                         for(Capture c1 : a.getCaptured()) {
-                            updateCaptureMap(captureMapCopy, c1, false);
+                            updateCaptureMap(captureMapCopy, c1, a.pawn.position, false);
                         }
                     }
                 }
@@ -338,17 +338,18 @@ public class TablutState {
         removeCapturesAssumingCoordinatesBlocker(action.pawn.position, getValue(pawns, action.coordinates), null, temp);
     }
 
-    public void updateCaptureMap(HashMap<Capture, Integer> capMap, Capture cap, boolean add) {
-        Integer capNumber = capMap.get(cap);
-        if(capNumber == null) 
-            capNumber = 0;
+    public void updateCaptureMap(HashMap<Capture, LinkedList<Coordinates>> capMap, Capture cap, Coordinates attacker, boolean add) {
+        LinkedList<Coordinates> attackerList = capMap.get(cap);
+        if(attackerList == null) {
+            attackerList = new LinkedList<>();
+            capMap.put(cap, attackerList);
+        }
         if(add)
-            capNumber++;
-        else 
-            capNumber--;
-        capMap.remove(cap);
-        if(capNumber > 0)
-            capMap.put(cap, capNumber);
+            attackerList.add(attacker);
+        else
+            attackerList.remove(attacker);
+        if(attackerList.isEmpty())
+            capMap.remove(cap);
     }
 
     private Directions[] getOtherAxisDirections(Directions dir) {
@@ -558,11 +559,11 @@ public class TablutState {
             
             if(c.getCaptured().getPawnType() == EMPTY) {
                 if(!(captured == KING && !kingCaptured(capturedPos))) {
-                    updateCaptureMap(captureMapCopy, c, false);
+                    updateCaptureMap(captureMapCopy, c, enemyPos, false);
                 }
             }
             else {
-                updateCaptureMap(captureMapCopy, c, true);
+                updateCaptureMap(captureMapCopy, c, enemyPos, true);
                 if(tempAction.coordinates.equals(capturedPos)) {
                     this.willBeCaptured = true;
                 }
@@ -603,7 +604,7 @@ public class TablutState {
             Capture c = new Capture(new Pawn(getValue(pawns, captured), captured));     
             if(!isCapture(c, getValue(pawns, enemyPos), emptyPos, enemyPos))
                 return;
-            updateCaptureMap(captureMapCopy, c, false);
+            updateCaptureMap(captureMapCopy, c, enemyPos, false);
         }
         else {
             TablutAction tempAction = new TablutAction(new Coordinates(emptyPos.row, emptyPos.column), new Pawn(getValue(pawns, enemyPos), enemyPos));
@@ -857,17 +858,18 @@ public class TablutState {
         
         for(TablutAction a : actions) 
             for(Capture c : a.getCaptured())
-                updateCaptureMap(capturesMap, c, true);
+                updateCaptureMap(capturesMap, c, a.pawn.position, true);
         for(TablutAction a : getLegalActions(this.playerTurn == WHITE ? BLACK : WHITE))
             for(Capture c : a.getCaptured())
-                updateCaptureMap(capturesMap, c, true);
+                updateCaptureMap(capturesMap, c, a.pawn.position, true);
 
-        for(Map.Entry<Capture, Integer> e : capturesMap.entrySet()) 
+        for(Map.Entry<Capture, LinkedList<Coordinates>> e : capturesMap.entrySet()) 
             if(isEnemy(e.getKey().getCaptured().getPawnType(), this.playerTurn))
                 oldCaptures++;
             else
                 oldLoss++;
         //DEBUG -> old cap/loss
+        
         int oldCapturesDebug = 0;
         int oldLossDebug = 0;
         LinkedList<Capture> debCaptures = new LinkedList<>();
@@ -919,7 +921,7 @@ public class TablutState {
 
     private TablutAction tempAction;
     private boolean willBeCaptured;
-    private HashMap<Capture, Integer> captureMapCopy;
+    private HashMap<Capture, LinkedList<Coordinates>> captureMapCopy;
     private boolean kingCheckmate;
 
     private double evaluateAction(TablutAction action, int[] weights, int oldCaptures, int oldLoss, int oldKingMoves) {
@@ -932,17 +934,19 @@ public class TablutState {
         this.kingPaths = getKingPaths();
         this.kingCheckmate = false;
         
-        for(Map.Entry<Capture, Integer> entry : this.capturesMap.entrySet())
-            captureMapCopy.put(entry.getKey(), (int) entry.getValue());
+        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : this.capturesMap.entrySet()) {
+            captureMapCopy.put(entry.getKey(), new LinkedList<>(entry.getValue()));
+        }
         if(action.pawn.getPawnType() == KING)
             return 0;
         makeTemporaryAction(action);
-
+        
         //DEBUG -> new cap/loss
         int newCapturesDebug = 0;
         int newLossDebug = 0;
         LinkedList<Capture> debCaptures = new LinkedList<>();
         LinkedList<Capture> debLoss = new LinkedList<>();
+
         for(TablutAction a : getLegalActionsDebug()) {
             for(Capture c : a.getCaptured()) {
                 if(!debCaptures.contains(c)) {
@@ -951,17 +955,41 @@ public class TablutState {
                 }
             }
         }
-
+        boolean willBeCapturedDebug = false;
         for(TablutAction a : getLegalActionsDebug(this.playerTurn == WHITE ? BLACK : WHITE)) {
             for(Capture c : a.getCaptured()) {
+                if(c.getCaptured().position.equals(action.coordinates))
+                    willBeCapturedDebug = true;
                 if(!debLoss.contains(c)) {
                     debLoss.add(c);
                     newLossDebug++;
                 }
             }
         }
+        
         LinkedList<TablutAction> kingActionsDebug = getPawnActions(kingPosition, KING);
         int newKingMovesDebug = kingActionsDebug.size();
+        LinkedList<Coordinates> escapeList = new LinkedList<>();
+
+        boolean kingCheckmateDebug = false;
+        for(TablutAction ka : kingActionsDebug) {
+            int escapes = 0;
+            escapeList = new LinkedList<>();
+            for(TablutAction ea : getPawnActions(ka.coordinates, KING)) {
+                if(isOnPosition(ea.coordinates, ESCAPE)) {
+                    escapeList.add(ea.coordinates);
+                    escapes++;
+                    if(escapes > 1) {
+                        kingCheckmateDebug = true;
+                        break;
+                    }
+                }
+            }
+            if(kingCheckmateDebug)
+                break;
+        }
+
+
 
 
         updateActionMap(action, true);
@@ -972,20 +1000,22 @@ public class TablutState {
             newKingMoves += kingPaths.get(dir.value());
         }
 
-        for(Map.Entry<Capture, Integer> entry : captureMapCopy.entrySet()) {
+        for(Map.Entry<Capture, LinkedList<Coordinates>> entry : captureMapCopy.entrySet()) {
             if(isEnemy(entry.getKey().getCaptured().getPawnType(), this.playerTurn))
                 newCaptures++;
             else
                 newLoss++;
-            /*
-            for(Capture c : action.getCaptured()) {
-                if(c.equals(entry.getKey())) {
-                    newCaptures--;
-                    break;
-                }
-            }*/
         }
 
+        if(willBeCapturedDebug != willBeCaptured) {
+            System.out.println(action);
+            System.out.println("debug: " + willBeCapturedDebug);
+            System.out.println("real: " + willBeCaptured);
+            System.out.println(this);
+            throw new RuntimeException();
+        }
+
+        
         if(newKingMoves != newKingMovesDebug) {
             throw new RuntimeException();
         }
@@ -999,15 +1029,15 @@ public class TablutState {
             System.out.println("RealNewCap: " + newCaptures + "\nDebugNewCap: " + newCapturesDebug);
             System.out.println("RealNewLoss: " + newLoss + "\nDebugNewLoss: " + newLossDebug);
             System.out.println("Old Captures: ");
-            for(Map.Entry<Capture, Integer> entry : capturesMap.entrySet()) 
+            for(Map.Entry<Capture, LinkedList<Coordinates>> entry : capturesMap.entrySet()) 
                 System.out.println(entry.getKey() + " -> " + entry.getValue());
                 System.out.println("New Captures: ");
-            for(Map.Entry<Capture, Integer> entry : captureMapCopy.entrySet()) 
+            for(Map.Entry<Capture, LinkedList<Coordinates>> entry : captureMapCopy.entrySet()) 
                 System.out.println(entry.getKey() + " -> " + entry.getValue());
             System.out.println(this);
             throw new RuntimeException();
         }
-        //END DEBUG -> new cap/loss
+        //END DEBUG -> new cap/loss*/
 
         
         int capturesDiff = (newCaptures + newActiveCaptures - oldCaptures);
@@ -1131,20 +1161,14 @@ public class TablutState {
     }
 
     //change name, updateTempActions
-    //King escapes assuming to be 0 at start
     private void countCaptures(Coordinates coord, byte pawn, Directions dir) {
         if(actionsMap.get(coord) != null)
             for(TablutAction a : actionsMap.get(coord).get(dir.value())) {
                 for(Capture c : a.getCaptured()) 
-                    updateCaptureMap(captureMapCopy, c, false);
+                    updateCaptureMap(captureMapCopy, c, a.pawn.position,false);
             }
         int step = dir == Directions.UP || dir == Directions.LEFT ? -1 : 1;
         boolean row = dir == Directions.UP || dir == Directions.DOWN;
-        boolean searchEscapes = pawn == KING;
-        int initialEscapes = 0;
-        if(searchEscapes && searchEscape(coord, dir)) 
-            initialEscapes = 1;
-        Directions[] escapeDirections = getOtherAxisDirections(dir);
         int moves = 0;
         for (int i = (row ? coord.row : coord.column) + step; (step > 0 ? i < BOARD_SIZE : i >= 0) ; i += step) {
             TablutAction action;
@@ -1152,43 +1176,31 @@ public class TablutState {
             action = new TablutAction(c, new Pawn(pawn, coord));
             if (!isLegal(action))
                 break;
-            int escapes = initialEscapes;
-            if(searchEscapes) {
-                for(Directions d : escapeDirections) {
-                    if(searchEscape(c, d))
-                        escapes++;
-                    if(escapes > 1) {
-                        this.kingCheckmate = true;
-                        searchEscapes = false;
-                        break;
-                    }
-                }
-            }
             moves++;
             Capture captured;
             captured = getCaptured(c, pawn, c.row + 2, c.column);
             if (captured != null) {
                 if(captured.getCaptured().position.equals(tempAction.coordinates))
                     this.willBeCaptured = true;
-                updateCaptureMap(captureMapCopy, captured, true);
+                updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row - 2, c.column);
             if (captured != null) {
                 if(captured.getCaptured().position.equals(tempAction.coordinates))
                     this.willBeCaptured = true;
-                updateCaptureMap(captureMapCopy, captured, true);
+                updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row, c.column + 2);
             if (captured != null) {
                 if(captured.getCaptured().position.equals(tempAction.coordinates))
                     this.willBeCaptured = true;
-                updateCaptureMap(captureMapCopy, captured, true);
+                updateCaptureMap(captureMapCopy, captured, coord, true);
             }
             captured = getCaptured(c, pawn, c.row, c.column - 2);
             if (captured != null) {
                 if(captured.getCaptured().position.equals(tempAction.coordinates))
                     this.willBeCaptured = true;
-                updateCaptureMap(captureMapCopy, captured, true);
+                updateCaptureMap(captureMapCopy, captured, coord, true);
             }
         }
         if(pawn == KING) {

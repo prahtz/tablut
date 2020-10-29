@@ -20,7 +20,7 @@ public class TablutAction implements Comparable<TablutAction>{
     }
 
     public void addCapture(Capture capture) {
-        if(!captured.contains(capture))
+        if(capture != null && !captured.contains(capture))
             captured.add(capture);
     }
 
@@ -86,7 +86,11 @@ public class TablutAction implements Comparable<TablutAction>{
     public int compareTo(TablutAction o) {
         if(o.getValue() > value)
             return 1;
-        else if(o.getValue() < value)
+        if(o.getValue() < value)
+            return -1;
+        if(o.pawn.position.hashCode() < pawn.position.hashCode())
+            return 1;
+        if(o.pawn.position.hashCode() > pawn.position.hashCode())
             return -1;
         return 0;
     }

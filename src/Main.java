@@ -1,5 +1,9 @@
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.concurrent.TimeUnit;
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         
         byte[][] pawns = new byte[9][9];
         /*
@@ -30,9 +34,27 @@ public class Main {
         System.out.println(state.toString());
         */
         
+        /*
         TablutState state = new TablutState(TablutState.WHITE);
-        TablutGame game = new TablutGame(new int[]{0});
+        LinkedList<TablutAction> whiteMoves = state.getLegalActions();
+        TablutGame game = new TablutGame(new int[]{0, 0, 0, 0, 0});
+        MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 1);
+        Collections.sort(whiteMoves);
+        state.printList(whiteMoves);
+        for(TablutAction a : whiteMoves) {
+            state = state.clone();
+            state.makeAction(a);
+            System.out.println(state.toString());
+            TablutAction blackMove = mcts.monteCarloTreeSearch(state);
+            state = state.clone();
+            state.makeAction(blackMove);
+            System.out.println(state.toString());
+            TimeUnit.SECONDS.sleep(2);
+            state = new TablutState(TablutState.WHITE);
+        }*/
         
+        TablutState state = new TablutState(TablutState.WHITE);
+        TablutGame game = new TablutGame(new int[]{10,15,5,-15,20});
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
         while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
             TablutAction a = mcts.monteCarloTreeSearch(state);
@@ -45,7 +67,7 @@ public class Main {
                 + action.lossDiff + " kmDiff: " + action.kingMovesDiff +  " kCM: " + action.kingCheckmate 
                 + " wbc: " + action.isWillBeCaptured() + "\n");
             }*/
-
+            
             state = state.clone();
             if(a == null)
                 break;

@@ -3,9 +3,9 @@ import java.util.LinkedList;
 public class MonteCarloTreeSearch<S, A> {
     private MonteCarloGame<S, A> game;
     private long start;
-    private long end;
+    private double end;
 
-    public MonteCarloTreeSearch(MonteCarloGame<S, A> game, int timeout) {
+    public MonteCarloTreeSearch(MonteCarloGame<S, A> game, double timeout) {
         this.game = game;
         this.end = timeout * 1000;
     }
@@ -13,6 +13,7 @@ public class MonteCarloTreeSearch<S, A> {
     public A monteCarloTreeSearch(S state) {
         start = System.currentTimeMillis();
         MonteCarloNode<S, A> tree = new MonteCarloNode<>(state);
+        boolean first = true;
         while(isTimeRemaining()) {
             MonteCarloNode<S, A> leaf = select(tree);
             LinkedList<MonteCarloNode<S, A>> children = expand(leaf);
@@ -21,10 +22,13 @@ public class MonteCarloTreeSearch<S, A> {
                 leaf.isLeaf(true);
                 children.add(leaf);
             }
+            if(first && children.size() == 1)
+                break;
             for(MonteCarloNode<S, A> child : children) {
                 double result = simulate(child);
                 backPropagate(result, child);
             }
+            first = false;
         }
         
         System.out.println("Root values: " + tree.getUtility() + "/" + tree.getPlayoutsNumber());

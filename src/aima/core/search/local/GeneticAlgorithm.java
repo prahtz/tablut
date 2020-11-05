@@ -136,7 +136,6 @@ public class GeneticAlgorithm<A> {
 			bestIndividual = retrieveBestIndividual(population, fitnessFn);
 
 			updateMetrics(population, ++itCount, System.currentTimeMillis() - startTime);
-			System.out.println("BO: " + itCount);
 			// until some individual is fit enough, or enough time has elapsed
 			if (maxTimeMilliseconds > 0L && (System.currentTimeMillis() - startTime) > maxTimeMilliseconds)
 				break;
@@ -327,7 +326,7 @@ public class GeneticAlgorithm<A> {
 		}
 	}
 	
-	private void notifyProgressTrackers(int itCount, Collection<Individual<A>> generation) {
+	protected void notifyProgressTrackers(int itCount, Collection<Individual<A>> generation) {
 		for (ProgressTracker<A> tracer : progressTrackers)
 			tracer.trackProgress(getIterations(), generation);
 	}

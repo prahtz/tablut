@@ -5,6 +5,8 @@ import aima.core.search.local.Individual;
 
 public class Fitness implements FitnessFunction<Integer> {
 
+    private final int PLAYOUTS_NUMBER = 10;
+
     @Override
     public double apply(Individual<Integer> individual) {
         List<Integer> weightsList = individual.getRepresentation();
@@ -12,25 +14,25 @@ public class Fitness implements FitnessFunction<Integer> {
         int[] weights = new int[weightsList.size()];
         for(int i = 0; i < weightsList.size(); i++) 
             weights[i] = weightsList.get(i);
+
+        /*
         for(int i = 0; i < 5; i++) {
             System.out.println("IND: " + weights[i]);
+        }*/
+        GeneticClient gc = new GeneticClient(weights, TablutState.WHITE, 10);
+        Metrics metrics = null;
+        int wins = 0;
+        int draws = 0;
+        for(int i = 0; i < PLAYOUTS_NUMBER; i++) {
+            metrics = gc.run();
+            if(metrics.getResult() == Metrics.WIN)
+                wins++;
+            else if(metrics.getResult() == Metrics.DRAW)
+                draws++;
         }
-        GeneticClient gc = new GeneticClient(weights, TablutState.WHITE, 5);
-        Metrics metrics = gc.run();
-        
-        int sign = 1;
-        if(metrics.getResult() == Metrics.LOOSE)
-            sign = -1;
-        if(metrics.getMovesNumber() == 0) {
-            System.out.println("Value: -2000");
-            return -2000;
-        }
-        
-        System.out.println("RESULT: " + metrics.getResult() + " CAPTURED: " + metrics.getPawnsCaptured() + " PLOST: " + metrics.getPawnsLost() + " MNUMB: " + metrics.getMovesNumber());
-        System.out.print("Value: ");
-        System.out.println(1000 * metrics.getResult() + 10 * metrics.getPawnsCaptured() - 10 * metrics.getPawnsLost() - (sign * metrics.getMovesNumber()));
-        
-        return 1000 * metrics.getResult() + 10 * metrics.getPawnsCaptured() - 10 * metrics.getPawnsLost() - (sign * metrics.getMovesNumber());
+
+        double result = (wins + 0.5 * draws) / PLAYOUTS_NUMBER;
+        return result;
     }
 
     

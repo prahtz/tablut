@@ -2,3 +2,4 @@ settings.json.code-workspace
 tablut.code-workspace
 /.vscode/
 /bin/
+/out/*

@@ -1,9 +1,13 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         
         byte[][] pawns = new byte[9][9];
         /*
@@ -17,6 +21,69 @@ public class Main {
         pawns[3][6] = TablutState.BLACK;
         pawns[3][8] = TablutState.BLACK;
         pawns[4][6] = TablutState.WHITE;
+
+        ProcessBuilder builder = new ProcessBuilder("ant", "server");
+        builder.directory(new File("/mnt/c/Users/loren/Documenti/GitHub/TablutCompetition/Tablut/"));
+        builder.redirectErrorStream(true);
+        Process p = builder.start();
+        BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        String line;
+        
+        while (r.ready()) {
+            line = r.readLine();
+            if (line == null) { break; }
+            System.out.println(line);
+        }
+        
+
+        TablutState state = new TablutState(TablutState.WHITE);
+        TablutGame game = new TablutGame(new int[]{6, 12, 28, 14, 36});
+        MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 10);
+
+        TablutGame game2 = new TablutGame(new int[]{0,0,0,0,0});
+        MonteCarloTreeSearch<TablutState, TablutAction> mcts2 = new MonteCarloTreeSearch<>(game2, 10);
+        while(!state.isBlackWin() && !state.isWhiteWin() && !state.isDraw()) {
+            TablutAction a = mcts.monteCarloTreeSearch(state);
+            /*
+            LinkedList<TablutAction> list = state.getBestActionFirst(new int[]{0});
+            
+            
+            for(TablutAction action : list) {
+                System.out.print(action + " - " + action.getValue() + " capDiff: " + action.capturesDiff + " lossDiff: " 
+                + action.lossDiff + " kmDiff: " + action.kingMovesDiff +  " kCM: " + action.kingCheckmate 
+                + " wbc: " + action.isWillBeCaptured() + "\n");
+            }*/
+            
+            state = state.clone();
+            if(a == null)
+                break;
+            state.makeAction(a);
+            System.out.println(state.toString());
+            if(state.isBlackWin() || state.isWhiteWin() || state.isDraw())
+                break;
+            TablutAction a2 = mcts2.monteCarloTreeSearch(state);
+
+            state = state.clone();
+            if(a2 == null)
+                break;
+            state.makeAction(a2);
+            System.out.println(state.toString());
+            /*
+            
+            LinkedList<TablutAction> actions = state.getLegalActions();
+            actions.addAll(state.getLegalActions(state.getPlayerTurn() == TablutState.BLACK ? TablutState.WHITE : TablutState.BLACK));
+            HashMap<Capture, Integer> capturesMap = new HashMap<>();
+            for(TablutAction a1 : actions) 
+                for(Capture c : a1.getCaptured())
+                    state.updateCaptureMap(capturesMap, c, true);
+            for(Map.Entry<Capture, Integer> e : capturesMap.entrySet()) {
+                System.out.println(e.getKey().toString());
+            }*/
+            
+            
+        }
+        System.out.println(state.toString());
+        System.out.println(state.isBlackWin() + " " + state.isWhiteWin() + " " + state.isDraw());
 
         /*
         TablutAction a = new TablutAction(new Coordinates(2, 6), new Pawn(TablutState.WHITE, new Coordinates(2, 2)));
@@ -49,10 +116,11 @@ public class Main {
             state = state.clone();
             state.makeAction(blackMove);
             System.out.println(state.toString());
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.SECONDS.sleep(4);
             state = new TablutState(TablutState.WHITE);
-        }*/
-        
+        }
+        */
+        /*
         TablutState state = new TablutState(TablutState.WHITE);
         TablutGame game = new TablutGame(new int[]{10,15,5,-15,20});
         MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, 5);
@@ -67,7 +135,7 @@ public class Main {
                 + action.lossDiff + " kmDiff: " + action.kingMovesDiff +  " kCM: " + action.kingCheckmate 
                 + " wbc: " + action.isWillBeCaptured() + "\n");
             }*/
-            
+            /*
             state = state.clone();
             if(a == null)
                 break;
@@ -84,7 +152,7 @@ public class Main {
             for(Map.Entry<Capture, Integer> e : capturesMap.entrySet()) {
                 System.out.println(e.getKey().toString());
             }*/
-            
+            /*
             System.out.println(state.toString());
         }
         System.out.println(state.toString());

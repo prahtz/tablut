@@ -13,7 +13,7 @@ public class MonteCarloNode<S, A> {
     
     //keep oreded maybe
     //polymorphism for this set
-    LinkedList<MonteCarloNode<S, A>> children = new LinkedList<>();;
+    LinkedList<MonteCarloNode<S, A>> children = new LinkedList<>();
 
     public MonteCarloNode(S state) {
         this.leaf = true;
@@ -69,8 +69,10 @@ public class MonteCarloNode<S, A> {
 	}
 
 	public void updatePlayoutResults(double utility) {
-        this.utility += utility;
-        this.playoutsNumber++;
+        if(utility >= 0) {
+            this.utility += utility;
+            this.playoutsNumber++;
+        }
     }
     
     @Override

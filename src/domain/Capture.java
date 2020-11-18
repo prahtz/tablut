@@ -1,3 +1,5 @@
+package domain;
+
 public class Capture {
     private Pawn captured;
 

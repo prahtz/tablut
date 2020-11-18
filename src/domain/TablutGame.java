@@ -1,31 +1,32 @@
-import java.util.Collections;
+package domain;
+
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
 
 import aima.core.util.Util;
+import montecarlo.*;
 
 
 public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     private final double WHITE_WIN = 0;
     private final double BLACK_WIN = 1;
     private final double DRAW = 0.5;
-    private final double ABORTED = -1;
 
     private final double WIN_WEIGHT = 1;
     private final double LOOSE_WEIGHT = 0;
-    private final double NULL_WEIGHT = -1;
 
-    private final int MAX_MOVES = 200;
+    private final int MAX_MOVES = 100;
 
-    private int[] weights;
+    private Integer[] weights;
 
-    public TablutGame(int[] weights) {
+    public TablutGame(Integer[] weights) {
         this.weights = weights;
     }
 
     @Override
     public LinkedList<TablutAction> getActions(TablutState state) {
-        return state.getBestActionFirst(weights);
+        return state.getBestActionFirst();
     }
 
     @Override
@@ -37,15 +38,15 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
 
     @Override
     public double getPlayoutResult(TablutState state) {
-        
         state = state.clone();
-        LinkedList<SimulateAction> actions = new LinkedList<>();
+        ArrayList<SimulateAction> actions = new ArrayList<>();
         byte player = state.getPlayerTurn();
-        boolean abortSimulation = false;
         int moves = 0;
+        boolean abortSimulation = false;
         while (!state.isWhiteWin() && !state.isBlackWin() && !state.isDraw() && !abortSimulation) {
-            actions = state.getSimulatingActions();
-            if (!actions.isEmpty()) {
+            actions = state.getSimulatingActions(weights);
+            
+            if (!actions.isEmpty()) {     
                 double[] probDist = new double[actions.size()];
                 int i = 0;
                 for(SimulateAction sa : actions) {
@@ -56,32 +57,36 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
                 probDist = Util.normalize(probDist);
                 double prob = ThreadLocalRandom.current().nextDouble();
                 double totalSoFar = 0.0;
-                TablutAction action = actions.getLast();
+                TablutAction action = actions.get(actions.size() - 1);
                 for (i = 0; i < probDist.length; i++) {
                     totalSoFar += probDist[i]; 
                     if (totalSoFar <= prob) {
-                        action = actions.get(i);
+                        action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
                         break;
                     }
-		        }
+                }
+                
                 state = state.copySimulation();
                 state.makeAction(action);
+                player = state.getPlayerTurn();
+                moves++;
                 if(moves >= MAX_MOVES)
                     abortSimulation = true;
-                moves++;
             }
             else
                 break;
         }
 
         double result = DRAW;
-        if (state.isWhiteWin())
+        if(abortSimulation)
+            return result;
+        if (state.isWhiteWin()) 
             result = WHITE_WIN;
         else if (state.isBlackWin())
             result = BLACK_WIN;
-        //else if(abortSimulation)
-            //result = ABORTED;
-        else if(actions.isEmpty() || abortSimulation) {
+        else if(state.isDraw())
+            result = DRAW;
+        else if(actions.isEmpty()) {
             if(player == TablutState.WHITE) 
                 result = BLACK_WIN;
             else
@@ -96,11 +101,9 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
         byte playerTurn = state.getPlayerTurn();
         if (result == DRAW)
             return result;
-        if (result == DRAW || (result == WHITE_WIN && playerTurn == TablutState.WHITE)
+        if ((result == WHITE_WIN && playerTurn == TablutState.WHITE)
                 || (result == BLACK_WIN && playerTurn == TablutState.BLACK))
             return LOOSE_WEIGHT;
-        if(result == ABORTED)
-            return NULL_WEIGHT;
         return WIN_WEIGHT;
     }
 

@@ -1,9 +1,11 @@
+package domain;
+
 import java.util.LinkedList;
 
 public class TablutAction implements Comparable<TablutAction>{
-    Coordinates coordinates;
-    private LinkedList<Capture> captured;
-    Pawn pawn;
+    public Coordinates coordinates;
+    protected LinkedList<Capture> captured;
+    public Pawn pawn;
     private double value;
 
     int capturesDiff = 0;

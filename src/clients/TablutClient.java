@@ -1,3 +1,5 @@
+package clients;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,6 +8,9 @@ import java.net.UnknownHostException;
 import java.util.LinkedList;
 
 import com.google.gson.Gson;
+
+import domain.*;
+import utils.*;
 
 public class TablutClient {
     private Gson gson;
@@ -35,6 +40,14 @@ public class TablutClient {
         if(role.equals("BLACK")) {
             port = blackPort;
             this.playerTurn = TablutState.BLACK;
+        }
+        else if(!role.equals("WHITE")) {
+            System.out.println("Invalid player!");
+            System.exit(-1);
+        }
+        if(timeout <= 0) {
+            System.out.println("Invalid timeout!");
+            System.exit(-1);
         }
         this.timeout = timeout;
         this.playerSocket = new Socket(serverIp, port);
@@ -104,9 +117,8 @@ public class TablutClient {
         TablutClient taprut = new TablutClient(args[0], Integer.parseInt(args[1]), args[2]);
         taprut.declareName();
 
-        int[] weights = new int[]{0,0,0,0,0};
-        TablutGame game = new TablutGame(weights);
-        MonteCarloTreeSearch<TablutState, TablutAction> mcts = new MonteCarloTreeSearch<>(game, taprut.getTimeout());
+        TablutGame game = new TablutGame(Weights.getWeights());
+        TablutSearch mcts = new TablutSearch(game, taprut.getTimeout());
         String myTurn = args[0].toUpperCase();
         String turn = myTurn;
         boolean firstMove = true;

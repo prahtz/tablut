@@ -1,1 +1,1 @@
-java -cp bin:lib/* TablutClient $1 $2 $3
+java -cp bin:lib/* clients.TablutClient $1 $2 $3

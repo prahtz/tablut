@@ -1,3 +1,5 @@
+package domain;
+
 public class Coordinates {
     public int row;
     public int column;

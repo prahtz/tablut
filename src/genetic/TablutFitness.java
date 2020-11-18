@@ -1,9 +1,14 @@
+package genetic;
+
 import java.util.List;
 
 import aima.core.search.local.FitnessFunction;
 import aima.core.search.local.Individual;
 
-public class Fitness implements FitnessFunction<Integer> {
+import clients.GeneticClient;
+import domain.*;
+
+public class TablutFitness implements FitnessFunction<Integer> {
 
     private final int PLAYOUTS_NUMBER = 10;
 
@@ -11,23 +16,19 @@ public class Fitness implements FitnessFunction<Integer> {
     public double apply(Individual<Integer> individual) {
         List<Integer> weightsList = individual.getRepresentation();
 
-        int[] weights = new int[weightsList.size()];
+        Integer[] weights = new Integer[weightsList.size()];
         for(int i = 0; i < weightsList.size(); i++) 
             weights[i] = weightsList.get(i);
 
-        /*
-        for(int i = 0; i < 5; i++) {
-            System.out.println("IND: " + weights[i]);
-        }*/
         GeneticClient gc = new GeneticClient(weights, TablutState.WHITE, 10);
-        Metrics metrics = null;
+        TablutMetrics metrics = null;
         int wins = 0;
         int draws = 0;
         for(int i = 0; i < PLAYOUTS_NUMBER; i++) {
             metrics = gc.run();
-            if(metrics.getResult() == Metrics.WIN)
+            if(metrics.getResult() == TablutMetrics.WIN)
                 wins++;
-            else if(metrics.getResult() == Metrics.DRAW)
+            else if(metrics.getResult() == TablutMetrics.DRAW)
                 draws++;
         }
 

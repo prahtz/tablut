@@ -1,3 +1,5 @@
+package genetic;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,17 +13,18 @@ import aima.core.search.local.GeneticAlgorithm;
 import aima.core.search.local.Individual;
 import aima.core.util.Tasks;
 import aima.core.util.Util;
+import domain.Weights;
 
-public class Genetic<A> extends GeneticAlgorithm<A> {
+public class TablutGenetic<A> extends GeneticAlgorithm<A> {
 
 	private final String OUT_PATH = "out/populations.txt";
 	private double[] firstFValues;
 
-    public Genetic(int individualLength, Collection<A> finiteAlphabet, double mutationProbability) {
+    public TablutGenetic(int individualLength, Collection<A> finiteAlphabet, double mutationProbability) {
 		super(individualLength, finiteAlphabet, mutationProbability);
 	}
 
-	public Genetic(int individualLength, Collection<A> finiteAlphabet, double mutationProbability, double[] firstFValues) {
+	public TablutGenetic(int individualLength, Collection<A> finiteAlphabet, double mutationProbability, double[] firstFValues) {
 		super(individualLength, finiteAlphabet, mutationProbability);
 		this.firstFValues = firstFValues;
 	}
@@ -93,8 +96,8 @@ public class Genetic<A> extends GeneticAlgorithm<A> {
 		}
 		notifyProgressTrackers(getIterations(), population);
 		return newPopulation;
-    }
-    
+	}
+	
     protected Individual<A> randomSelection(List<Individual<A>> population, double[] fValues) {
 		Individual<A> selected = population.get(population.size() - 1);
 		
@@ -109,7 +112,23 @@ public class Genetic<A> extends GeneticAlgorithm<A> {
 		}
 		selected.incDescendants();
 		return selected;
-    }
+	}
+	
+	@Override
+	protected Individual<A> mutate(Individual<A> child) {
+		int mutateOffset = randomOffset(individualLength);
+		int alphaOffset;
+		if(mutateOffset == Weights.STANDARD_ACTION.value())
+			alphaOffset = randomOffset(10);
+		else
+			alphaOffset = randomOffset(finiteAlphabet.size());
+
+		List<A> mutatedRepresentation = new ArrayList<A>(child.getRepresentation());
+		
+		mutatedRepresentation.set(mutateOffset, finiteAlphabet.get(alphaOffset));
+
+		return new Individual<A>(mutatedRepresentation);
+	}
     
     @Override
     public Individual<A> retrieveBestIndividual(Collection<Individual<A>> population, FitnessFunction<A> fitnessFn) {

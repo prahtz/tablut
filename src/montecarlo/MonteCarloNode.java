@@ -1,3 +1,5 @@
+package montecarlo;
+
 import java.util.LinkedList;
 
 
@@ -81,6 +83,4 @@ public class MonteCarloNode<S, A> {
             return "NULL\n";
         return state.toString();
     }
-
-	
 }

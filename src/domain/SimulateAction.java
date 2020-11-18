@@ -1,14 +1,12 @@
-public class SimulateAction extends TablutAction{
+package domain;
+
+public class SimulateAction extends TablutAction {
 
     private double prob;
 
-    public SimulateAction(Coordinates coordinates, Pawn pawn, double prob) {
-        super(coordinates, pawn);
-        this.prob = prob;
-    }
-
     public SimulateAction(TablutAction action, double prob) {
         super(action.coordinates, action.pawn);
+        this.captured = action.getCaptured();
         this.prob = prob;
     }
 

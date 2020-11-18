@@ -1,42 +1,48 @@
+package clients;
+
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
 import aima.core.search.local.Individual;
+import domain.*;
+import genetic.*;
 
 public class GeneticClient {
 
-    private int[] weights;
+    private Integer[] weights;
     private byte player;
     private long endTime;
 
-    private static final int WEIGHTS_NUMBER = TablutState.Weights.values().length;
+    private static final int WEIGHTS_NUMBER = Weights.values().length;
     private static final int POPULATION_NUMBER = 7;
-    private static final int WEIGHTS_LIMIT = 50;
+    private static final int WEIGHTS_LIMIT = 100;
     private static final int MAX_ITERATION = 4;
     private static final int MAX_MOVES = 60;
-    private static final String IN_PATH = "out/first.csv";
+    private static final String IN_PATH = "out/";
+
+    private static String inFile;
+    private static boolean file = false;
     private static double[] firstFValues;
 
-    public GeneticClient(int[] weights, byte player, int minutes) {
+    public GeneticClient(Integer[] weights, byte player, int minutes) {
         this.weights = weights;
         this.player = player;
         this.endTime = minutes * 60 * 1000;
     }
 
-    public Metrics run() {
+    public TablutMetrics run() {
         long start = System.currentTimeMillis();
         long end = System.currentTimeMillis();
-        Metrics result = new Metrics();
+        TablutMetrics result = new TablutMetrics();
         TablutGame train = new TablutGame(weights);
-        TablutGame enemy = new TablutGame(new int[] { 0, 0, 0, 0, 0 });
-        MonteCarloTreeSearch<TablutState, TablutAction> mctsTrain = new MonteCarloTreeSearch<>(train, 10);
-        MonteCarloTreeSearch<TablutState, TablutAction> mctsEnemy = new MonteCarloTreeSearch<>(enemy, 10);
+        TablutGame enemy = new TablutGame(new Integer[] {1, 1, 1, 1, 1});
+        TablutSearch mctsTrain = new TablutSearch(train, 10);
+        TablutSearch mctsEnemy = new TablutSearch(enemy, 10);
         TablutState s = new TablutState(TablutState.WHITE);
         int moves = 0;
         while (!s.isWhiteWin() && !s.isBlackWin() && !s.isDraw() && end - start < endTime && moves < MAX_MOVES) {
@@ -49,42 +55,52 @@ public class GeneticClient {
                 break;
             s = s.clone();
             s.makeAction(a);
-            // System.out.println(s.toString());
             moves++;
             end = System.currentTimeMillis();
         }
         if ((s.isWhiteWin() && player == TablutState.WHITE) || (s.isBlackWin() && player == TablutState.BLACK))
-            result.setResult(Metrics.WIN);
+            result.setResult(TablutMetrics.WIN);
         else if (s.isDraw())
-            result.setResult(Metrics.DRAW);
+            result.setResult(TablutMetrics.DRAW);
         else
-            result.setResult(Metrics.LOOSE);
-
-        if (player == TablutState.WHITE) {
-            result.setPawnsCaptured(TablutState.BLACK_PAWNS - s.getBlackPawns());
-            result.setPawnsLost(TablutState.WHITE_PAWNS - s.getWhitePawns());
-        } else {
-            result.setPawnsCaptured(TablutState.WHITE_PAWNS - s.getWhitePawns());
-            result.setPawnsLost(TablutState.BLACK_PAWNS - s.getBlackPawns());
-        }
-
-        result.setMovesNumber(moves);
+            result.setResult(TablutMetrics.LOOSE);
         return result;
     }
 
     public static void main(String[] args) {
-        List<Integer> finiteAlphabet = new ArrayList<>();
-        for (int i = 0; i <= WEIGHTS_LIMIT; i++) {
-            finiteAlphabet.add(i);
+        if(args.length > 2) {
+            System.out.println("Too many arguments");
+            System.exit(-1);
+        }
+
+        if(args.length >= 1) {
+            if(args[0].toLowerCase().equals("-f"))
+                file = true;
+            else {
+                System.out.println("Invalid argument");
+                System.exit(-1);
+            } 
+            if(args.length == 2)
+                inFile = args[1];
+            else {
+                System.out.println("Missing filename");
+                System.exit(-1);
+            }
         }
         
-        List<Individual<Integer>> population = getPopulationFromFile(IN_PATH);
-        Genetic<Integer> g = new Genetic<>(WEIGHTS_NUMBER, finiteAlphabet, 0.3, firstFValues);
-        //List<Individual<Integer>> population = getPopulation();
-        Individual<Integer> result = g.geneticAlgorithm(population, new Fitness(), MAX_ITERATION);
-        for (int i = 0; i < 5; i++) {
+        List<Integer> finiteAlphabet = new ArrayList<>();
+        for (int i = 1; i <= WEIGHTS_LIMIT; i++)
+            finiteAlphabet.add(i);
+        
+        List<Individual<Integer>> population;
+        if(file)
+            population = getPopulationFromFile(IN_PATH + inFile);
+        else 
+            population = getPopulation();
+        TablutGenetic<Integer> g = new TablutGenetic<>(WEIGHTS_NUMBER, finiteAlphabet, 0.3, firstFValues);
+        Individual<Integer> result = g.geneticAlgorithm(population, new TablutFitness(), MAX_ITERATION);
+        for (int i = 0; i < 5; i++) 
             System.out.println("RESULT: " + result.getRepresentation().get(i));
-        }
     }
 
     private static List<Individual<Integer>> getPopulationFromFile(String path) {
@@ -106,7 +122,6 @@ public class GeneticClient {
             }
             br.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         firstFValues = fValues;
@@ -122,32 +137,24 @@ public class GeneticClient {
     }
 
     private static Individual<Integer> getEmpiricalIndividual() {
-        ArrayList<Integer> weights = new ArrayList<>(WEIGHTS_NUMBER);
-        weights.add(TablutState.Weights.TOTAL_DIFF.value(), 10);
-        weights.add(TablutState.Weights.ACTIVE_CAPTURES.value(), 15);
-        weights.add(TablutState.Weights.KING_MOVES_DIFF.value(), 5);
-        weights.add(TablutState.Weights.WILL_BE_CAPTURED.value(), 15);
-        weights.add(TablutState.Weights.KING_CHECKMATE.value(), 20);    
-        return new Individual<>(weights);
+        return new Individual<>(Arrays.asList(Weights.getWeights()));
     }
 
     private static Individual<Integer> getIndividualRandom() {
-        ArrayList<Integer> weights = new ArrayList<>(WEIGHTS_NUMBER);
-        weights.add(TablutState.Weights.TOTAL_DIFF.value(), getNearRandom(10));
-        weights.add(TablutState.Weights.ACTIVE_CAPTURES.value(), getNearRandom(15));
-        weights.add(TablutState.Weights.KING_MOVES_DIFF.value(), getNearRandom(5));
-        weights.add(TablutState.Weights.WILL_BE_CAPTURED.value(), getNearRandom(15));
-        weights.add(TablutState.Weights.KING_CHECKMATE.value(), getNearRandom(20));    
+        List<Integer> weights = new ArrayList<>(WEIGHTS_NUMBER);
+        weights.add(Weights.STANDARD_ACTION.value(), getRandom(10));
+        weights.add(Weights.KING_CHECK.value(), getRandom(WEIGHTS_LIMIT));
+        weights.add(Weights.BLACK_ATTACK.value(), getRandom(WEIGHTS_LIMIT));
+        weights.add(Weights.WHITE_BORDER.value(), getRandom(WEIGHTS_LIMIT));
+        weights.add(Weights.CAPTURE.value(), getRandom(WEIGHTS_LIMIT));    
         return new Individual<>(weights);
     }
 
-    private static int getNearRandom(int i) {
-        int offset = 50 - i;
-        int result = -1;
-        while(result < 0) {
-            Random rand = new Random();
-            int sign = rand.nextInt(2) == 1 ? 1 : -1; 
-            result = i + sign * rand.nextInt(offset);
+    private static int getRandom(int limit) {
+        int result = 0;
+        Random rand = new Random();
+        while(result < 1) {
+            result = 1 + rand.nextInt(limit);
         }
         return result;
     }

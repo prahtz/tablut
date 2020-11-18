@@ -1,3 +1,5 @@
+package montecarlo;
+
 import java.util.LinkedList;
 
 public interface MonteCarloGame<S, A> {

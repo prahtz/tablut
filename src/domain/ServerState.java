@@ -1,3 +1,5 @@
+package domain;
+
 import java.io.Serializable;
 
 public class ServerState implements Serializable {

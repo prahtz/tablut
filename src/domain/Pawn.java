@@ -1,3 +1,5 @@
+package domain;
+
 public class Pawn {
     public Coordinates position;
     private byte pawnType;

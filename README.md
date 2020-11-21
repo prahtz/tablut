@@ -20,7 +20,7 @@ The following instructions will explain how to run the player.
 If you want to create an executable .jar file you must:
 * open a terminal and go to `scripts` folder
 * run `./buildjar`
-You can find the generated file in the `jar` folder
+You can find the generated file in the root folder
 
 ## Optimization using Genetic Algorithm
 If you want to optimize the hyperparameters used for the evaluations of good moves of this player you must:
@@ -28,3 +28,7 @@ If you want to optimize the hyperparameters used for the evaluations of good mov
 * run `./genetic`
 
 The results and all the populations will be written in `out/populations.txt`.
+
+## Notes
+* If you want to export the jar file you MUST also copy the `lib` folder and put it in the same directory of the executable.
+* In some cases, in order to execute the scripts, you must first change the permission of the `scripts` folder, for example using `chmod u+x *`

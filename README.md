@@ -1,5 +1,5 @@
 # Tablut
-An IA for the Tablut Challenge 2020
+An AI for the Tablut Challenge 2020
 
 ## Description
 This player has been designed to play against another player communicating through a [server](https://github.com/AGalassi/TablutCompetition).

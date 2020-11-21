@@ -26,4 +26,5 @@ You can find the generated file in the `jar` folder
 If you want to optimize the hyperparameters used for the evaluations of good moves of this player you must:
 * open a terminal and go to `scripts` folder
 * run `./genetic`
+
 The results and all the populations will be written in `out/populations.txt`.

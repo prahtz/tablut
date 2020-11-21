@@ -1,0 +1,2 @@
+Class-Path: lib/gson-2.2.0.jar
+Main-Class: clients.TablutClient

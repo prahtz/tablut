@@ -1,0 +1,6 @@
+#!/bin/bash
+F=$1
+FPATH=$2
+source ./build
+mkdir -p out
+java -cp bin:lib/* clients.GeneticClient $F $FPATH

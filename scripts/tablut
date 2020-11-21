@@ -1,0 +1,6 @@
+#!/bin/bash
+PLAYER=$1
+TIMEOUT=$2
+ADDR=$3
+source ./build
+java -cp bin:lib/* clients.TablutClient $PLAYER $TIMEOUT $ADDR

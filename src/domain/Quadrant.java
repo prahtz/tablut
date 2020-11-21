@@ -1,16 +1,14 @@
 package domain;
 
-public class Quadrant {
+public class Quadrant implements BoardSet{
     public static final int FIRST = 0;
     public static final int SECOND = 1;
     public static final int THIRD = 2;
     public static final int FOURTH = 3;
-    public static final int S_NUMBER = 2;
 
     public static final Quadrant[] quadrants = initQuadrants();
 
     private int quadrantNumber;
-    private Side[] sides = new Side[S_NUMBER];
 
     private Quadrant(int quadrantNumber) {
         this.quadrantNumber = quadrantNumber;
@@ -23,13 +21,6 @@ public class Quadrant {
         quadrants[THIRD] = new Quadrant(THIRD);
         quadrants[FOURTH] = new Quadrant(FOURTH);
         return quadrants;
-    }
-
-	public void addSide(Side side) {
-        if(sides[0] != null)
-            sides[0] = side;
-        else if(sides[1] != null)
-            sides[1] = side;
     }
     
     public boolean contains(Coordinates coord) {
@@ -47,8 +38,13 @@ public class Quadrant {
         }
         return false;
     }
-
-	public static boolean isOnQuadrant(Coordinates coordinates, Quadrant q) {
-		return false;
-	}
+    
+    public static Quadrant getQuadrant(Coordinates coordinates) {
+        if(coordinates.row == 4 || coordinates.column == 4)
+            return null;
+        for(Quadrant q : quadrants) 
+            if(q.contains(coordinates))
+                return q;
+        return null;
+    }
 }

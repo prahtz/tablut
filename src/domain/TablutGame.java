@@ -1,6 +1,7 @@
 package domain;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -17,6 +18,7 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
     private final double LOOSE_WEIGHT = 0;
 
     private final int MAX_MOVES = 100;
+
 
     private Integer[] weights;
 
@@ -43,10 +45,12 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
         byte player = state.getPlayerTurn();
         int moves = 0;
         boolean abortSimulation = false;
+        boolean print = false;
+        
         while (!state.isWhiteWin() && !state.isBlackWin() && !state.isDraw() && !abortSimulation) {
             actions = state.getSimulatingActions(weights);
-            
-            if (!actions.isEmpty()) {     
+            Collections.shuffle(actions);
+            if (!actions.isEmpty()) {
                 double[] probDist = new double[actions.size()];
                 int i = 0;
                 for(SimulateAction sa : actions) {
@@ -60,8 +64,8 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
                 TablutAction action = actions.get(actions.size() - 1);
                 for (i = 0; i < probDist.length; i++) {
                     totalSoFar += probDist[i]; 
-                    if (totalSoFar <= prob) {
-                        action = actions.get(ThreadLocalRandom.current().nextInt(actions.size()));
+                    if (prob <= totalSoFar) {
+                        action = actions.get(i);
                         break;
                     }
                 }
@@ -76,6 +80,9 @@ public class TablutGame implements MonteCarloGame<TablutState, TablutAction> {
             else
                 break;
         }
+
+        if(print && state.isWhiteWin())
+            print = true;
 
         double result = DRAW;
         if(abortSimulation)

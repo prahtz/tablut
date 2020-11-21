@@ -18,6 +18,6 @@ public enum Weights {
     }
 
     public static Integer[] getWeights() {
-        return new Integer[]{5, 30, 30, 50, 75};
+        return new Integer[]{1, 75, 75, 75, 150};
     }
 }

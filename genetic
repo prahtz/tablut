@@ -1,2 +1,0 @@
-mkdir -p out
-java -cp bin:lib/* clients.GeneticClient $1 $2

@@ -17,5 +17,10 @@ public class SimulateAction extends TablutAction {
     public void setProb(double prob) {
         this.prob = prob;
     }
+
+    @Override
+    public String toString() {
+        return super.toString() + " - " + prob;
+    }
     
 }

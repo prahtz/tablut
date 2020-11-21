@@ -1,0 +1,6 @@
+#!/bin/bash
+set echo off
+source ./build
+mkdir -p jar
+jar -cvfm ./jar/TaPrut.jar MANIFEST.MF -C ./bin .
+echo END

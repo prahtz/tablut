@@ -20,6 +20,7 @@ The following instructions will explain how to run the player.
 If you want to create an executable .jar file you must:
 * open a terminal and go to `scripts` folder
 * run `./buildjar`
+
 You can find the generated file in the root folder
 
 ## Optimization using Genetic Algorithm
